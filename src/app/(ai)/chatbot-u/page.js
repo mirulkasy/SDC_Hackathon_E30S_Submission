@@ -4,7 +4,7 @@ import { useState } from "react";
 
 export default function DemoPage() {
   const [question, setQuestion] = useState("");
-  const [result, setResult] = useState(null);
+  const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -13,21 +13,28 @@ export default function DemoPage() {
 
     setLoading(true);
     setError("");
-    setResult(null);
+    setAnswer("");
 
-    try {  
+    try {
       const res = await fetch("/api/chatbot-u", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}));
         setError(data.error || "Request failed");
-      } else {
-        setResult(data);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        setAnswer((prev) => prev + decoder.decode(value, { stream: true }));
       }
     } catch (err) {
       setError("Could not reach the server. Is npm run dev running?");
@@ -46,7 +53,7 @@ export default function DemoPage() {
       }}
     >
       <h1>AI Demo</h1>
-      <p>Type a question. The answer comes back as JSON.</p>
+      <p>Type a question. The answer streams in live.</p>
 
       <textarea
         value={question}
@@ -77,23 +84,10 @@ export default function DemoPage() {
 
       {error && <p style={{ color: "crimson", marginTop: 16 }}>{error}</p>}
 
-      {result && (
+      {answer && (
         <>
           <h2>Answer</h2>
-          <p>{result.answer}</p>
-
-          <h3>Raw JSON</h3>
-          <pre
-            style={{
-              background: "#f4f4f4",
-              color: "#000",
-              padding: 12,
-              borderRadius: 6,
-              overflowX: "auto",
-            }}
-          >
-            {JSON.stringify(result, null, 2)}
-          </pre>
+          <p style={{ whiteSpace: "pre-wrap" }}>{answer}</p>
         </>
       )}
     </main>
