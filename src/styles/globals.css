@@ -1,5 +1,6 @@
 :root {
   --Poppins: var(--font-poppins), sans-serif;
+  --Inter: var(--font-inter), sans-serif;
 
   --fontsize-header: 2.5rem;
   /* 40px / 16 */
@@ -67,7 +68,7 @@ html {
 }
 
 body {
-  font-family: var(--Poppins);
+  font-family: var(--Inter);
   font-size: 100%;
   /* Defaults to 16px */
   cursor: var(--pointer);
