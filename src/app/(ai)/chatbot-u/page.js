@@ -16,7 +16,7 @@ export default function DemoPage() {
     setResult(null);
 
     try {  
-      const res = await fetch("/api/ask", {
+      const res = await fetch("/api/chatbot-u", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),
