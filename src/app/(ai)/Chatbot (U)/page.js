@@ -15,7 +15,7 @@ export default function DemoPage() {
     setError("");
     setResult(null);
 
-    try {
+    try {  
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
