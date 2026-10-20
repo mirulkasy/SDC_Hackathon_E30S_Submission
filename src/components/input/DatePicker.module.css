@@ -1,0 +1,228 @@
+/* src/components/input/DatePicker.module.css
+   Calendar popover for DatePicker.js. The trigger button reuses the `.input`
+   look from CustomInput.module.css. Remember globals.css sets
+   `button { all: unset }`, so every button below sets its own display. */
+
+.trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.value {
+    color: #333;
+}
+
+.placeholder {
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+.icon {
+    flex-shrink: 0;
+    color: #666;
+    opacity: 0.7;
+}
+
+/* ---- Popover ---- */
+
+.popover {
+    --range-bg: #e3e9f4;
+    /* band between start and end */
+
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 8px);
+    left: 0;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 292px;
+    max-width: 340px;
+    padding: 16px;
+    background-color: var(--light);
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    box-shadow: 0 12px 32px rgba(17, 24, 39, 0.14);
+    animation: pop 0.14s ease-out;
+}
+
+@keyframes pop {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .popover {
+        animation: none;
+    }
+}
+
+/* ---- Header ---- */
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.navBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: var(--dark);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.navBtn:hover {
+    background-color: #f1f3f7;
+}
+
+/* ---- Weekday row + day grid ---- */
+
+.weekdays,
+.grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+
+.weekdays {
+    margin-bottom: 4px;
+}
+
+.weekdays span {
+    padding: 6px 0;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    color: #9ca3af;
+}
+
+.cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+}
+
+/* ---- Range band ---- */
+
+.inRange {
+    background-color: var(--range-bg);
+}
+
+.roundL {
+    border-radius: 999px 0 0 999px;
+}
+
+.roundR {
+    border-radius: 0 999px 999px 0;
+}
+
+.roundL.roundR {
+    border-radius: 999px;
+}
+
+/* Half a band behind the start / end circle so the range looks continuous */
+.capStart {
+    background: linear-gradient(to right, transparent 50%, var(--range-bg) 50%);
+}
+
+.capEnd {
+    background: linear-gradient(to left, transparent 50%, var(--range-bg) 50%);
+}
+
+/* ---- Day circle ---- */
+
+.day {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--dark);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.day:hover {
+    background-color: #eef1f6;
+}
+
+.day:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.today {
+    box-shadow: inset 0 0 0 1.5px var(--primary);
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Start / end (and the picked value): solid circle */
+.selected,
+.selected:hover {
+    background-color: var(--primary);
+    color: var(--light);
+    font-weight: 600;
+}
+
+.disabled,
+.disabled:hover {
+    background-color: transparent;
+    color: #c9ccd3;
+    cursor: not-allowed;
+}
+
+/* ---- Footer ---- */
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eef0f4;
+}
+
+.linkBtn {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.linkBtn:hover {
+    background-color: #f1f3f7;
+}
+
+.linkBtn[aria-disabled="true"] {
+    color: #c9ccd3;
+    cursor: not-allowed;
+}
+
+.linkBtn[aria-disabled="true"]:hover {
+    background-color: transparent;
+}
