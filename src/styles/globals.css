@@ -1,0 +1,229 @@
+:root {
+  --Poppins: var(--font-poppins), sans-serif;
+
+  --fontsize-header: 2.5rem;
+  /* 40px / 16 */
+  --fontsize-subheader: 1.5rem;
+  /* 24px / 16 */
+
+  --fontsize-20: 1.25rem;
+  /* 20px / 16 */
+  --fontsize-18: 1.125rem;
+  /* 18px / 16 */
+  --fontsize-16: 1rem;
+  /* 16px / 16 */
+  --fontsize-14: 0.875rem;
+  /* 14px / 16 */
+  --fontsize-13: 0.8125rem;
+  /* 13px / 16 */
+  --fontsize-12: 0.75rem;
+  /* 12px / 16 */
+
+  --boxshadow: 0px 3px 3px #00000020;
+
+  --primary: #192f59;
+  --secondary: #BB0306;
+  --selection: #FEF08A;
+  --light: #fff;
+  --dark: #333;
+  --background: #fff;
+
+  --animation-default-fast: 0.4s cubic-bezier(0.625, 0.05, 0, 1);
+  --animation-default: 0.8s cubic-bezier(0.625, 0.05, 0, 1);
+  --animation-apple: 0.3s cubic-bezier(0, 0, 0.5, 1);
+}
+
+::selection {
+  background-color: var(--selection);
+  color: #0F172A;
+  text-shadow: none;
+}
+
+/* For Webkit browsers (Chrome, Safari, Edge) */
+&::-webkit-scrollbar {
+  width: 30px;
+}
+
+&::-webkit-scrollbar-track {
+  background: #333;
+}
+
+&::-webkit-scrollbar-thumb {
+  background: #777777;
+  border-radius: 4px;
+}
+
+&::-webkit-scrollbar-thumb:hover {
+  background: #fff;
+}
+
+/* For Firefox */
+* {
+  scrollbar-color: #777777 #333;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--Poppins);
+  font-size: 100%;
+  /* Defaults to 16px */
+  cursor: var(--pointer);
+  position: relative;
+  width: 100dvw;
+  height: auto;
+  background-color: var(--background);
+  margin: 0px;
+  color: var(--dark);
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  transition: all var(--animation-default-fast);
+
+}
+
+main {
+  position: relative;
+  width: 100%;
+
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+a {
+  color: var(--dark);
+  display: block;
+  cursor: pointer;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+ul,
+li {
+  list-style: none;
+  text-decoration: none;
+  padding: 0px;
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+p {
+  padding: 0px;
+  margin: 0px;
+}
+
+img {
+  user-select: none;
+}
+
+button {
+  all: unset;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+input {
+  background-color: var(--background);
+  padding: 0 30px;
+  user-select: none;
+  cursor: pointer;
+  border-radius: 7px;
+  height: 50px;
+  font-size: var(--fontsize-input);
+  font-weight: 600;
+  color: var(--dark);
+  text-align: left;
+  transition: all var(--animation-default-fast);
+}
+
+input {
+  border: 1px solid #d1d1d6;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+input:focus {
+  border-color: var(--primary);
+}
+
+input:user-valid {
+  border-color: #004aad;
+}
+
+input:user-invalid {
+  border-color: #ff3b30;
+}
+
+label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.filled {
+  font-variation-settings:
+    "FILL" 1,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24 !important;
+}
+
+summary {
+  display: flex;
+  cursor: pointer;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+@media screen and (max-width: 568px) {
+  :root {
+    --fontsize-header: 2rem;
+    /* Scaled down to 32px */
+    --fontsize-subheader: 1.25rem;
+    /* Scaled down to 20px */
+
+    --fontsize-20: 1.125rem;
+    /* Scaled down to 18px */
+    --fontsize-18: 1rem;
+    /* Scaled down to 16px */
+    --fontsize-16: 0.9375rem;
+    /* Scaled down to 15px */
+    --fontsize-14: 0.8125rem;
+    /* 14px */
+    --fontsize-13: 0.75rem;
+    /* 13px */
+    --fontsize-12: 0.6rem;
+    /* 12px */
+  }
+
+  body {
+    padding: 0;
+  }
+}

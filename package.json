@@ -16,6 +16,6 @@
   "devDependencies": {
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.4.2"
+    "eslint-config-next": "^14.2.35"
   }
 }
