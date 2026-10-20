@@ -1,5 +1,7 @@
 export default function ChatPage() {
     return (
-        <main></main>
+        <main>
+            
+        </main>
     );
 }
