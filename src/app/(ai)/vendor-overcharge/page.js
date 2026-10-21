@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 const MAX_FILES = 8;
-const MAX_PDF_BYTES = 4 * 1024 * 1024;
+const MAX_PDF_BYTES = 8 * 1024 * 1024;
 const HISTORY_KEY = "vendor-price-history";
 const MAX_HISTORY = 500;
 
@@ -17,6 +17,7 @@ const TYPE_LABEL = {
   tax_mismatch: "Tax mismatch",
   duplicate_line: "Duplicate line",
   duplicate_invoice: "Duplicate invoice",
+  contract_flag: "Contract flag",
 };
 
 const SEV = {
@@ -26,7 +27,7 @@ const SEV = {
 };
 
 const fmt = (n) =>
-  Number(n || 0).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function readAsDataURL(file) {
   return new Promise((resolve, reject) => {
@@ -37,10 +38,9 @@ function readAsDataURL(file) {
   });
 }
 
-// Shrinks photos before upload: faster upload and faster AI response.
 async function fileToPayload(file) {
   if (file.type === "application/pdf") {
-    if (file.size > MAX_PDF_BYTES) throw new Error(`${file.name} is too large (PDF limit is 4 MB).`);
+    if (file.size > MAX_PDF_BYTES) throw new Error(`${file.name} is too large (PDF limit is 8 MB).`);
     const dataUrl = await readAsDataURL(file);
     return { name: file.name, mimeType: "application/pdf", data: dataUrl.split(",")[1], preview: null };
   }
@@ -51,7 +51,7 @@ async function fileToPayload(file) {
   try {
     bitmap = await createImageBitmap(file);
   } catch {
-    throw new Error(`${file.name}: could not open this image. Try a JPG or PNG (HEIC is not supported).`);
+    throw new Error(`${file.name}: could not open this image.`);
   }
   const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
@@ -63,7 +63,7 @@ async function fileToPayload(file) {
 }
 
 function buildMessage(d, active) {
-  const cur = d.currency || "MYR";
+  const cur = d.currency || "USD";
   const over = active.filter((f) => f.kind === "overcharge");
   const est = over.reduce((s, f) => s + f.amount, 0);
   return [
@@ -156,7 +156,7 @@ export default function VendorOverchargePage() {
       setMeta({ status: data.status, notes: data.notes });
       setDocs(data.documents || []);
     } catch {
-      setError("Could not reach the server. Is npm run dev running?");
+      setError("Could not reach the server.");
     } finally {
       setLoading(false);
     }
@@ -189,7 +189,7 @@ export default function VendorOverchargePage() {
       setCopied(d.id);
       setTimeout(() => setCopied(""), 2000);
     } catch {
-      setError("Could not copy automatically. Please select the text manually.");
+      setError("Could not copy automatically.");
     }
   }
 
@@ -214,7 +214,7 @@ export default function VendorOverchargePage() {
     return { overcharge, saving, high, count, vendors: [...vendors] };
   }, [docs, dismissed]);
 
-  const currency = docs[0]?.currency || "MYR";
+  const currency = docs[0]?.currency || "USD";
   const card = { flex: 1, minWidth: 150, padding: 12, borderRadius: 8, background: "#f4f4f4", color: "#000" };
   const field = { padding: 8, fontSize: 15, color: "#000", boxSizing: "border-box" };
 
@@ -222,9 +222,8 @@ export default function VendorOverchargePage() {
     <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 16px", fontFamily: "system-ui, sans-serif" }}>
       <h1>Unusual Flag: Vendor Overcharge</h1>
       <p>
-        Upload vendor invoices. The AI reads them and flags unusual charges: prices above what you
-        agreed, price increases, maths mistakes, wrong tax and duplicate bills. Flags are things to
-        check, not proof, so always confirm with your vendor.
+        Upload vendor invoices and purchase orders. The AI reads them and flags unusual charges: prices above what you
+        agreed, price increases, maths mistakes, wrong tax and duplicate bills.
       </p>
 
       <input type="file" accept="image/*,application/pdf" multiple onChange={handleFiles} />
@@ -243,7 +242,6 @@ export default function VendorOverchargePage() {
               <button
                 onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
                 style={{ position: "absolute", top: -6, right: -6, borderRadius: "50%", width: 22, height: 22, cursor: "pointer" }}
-                aria-label={`Remove ${f.name}`}
               >
                 ×
               </button>
@@ -253,13 +251,13 @@ export default function VendorOverchargePage() {
         </div>
       )}
 
-      <h3 style={{ marginBottom: 4 }}>Agreed prices (optional)</h3>
+      <h3 style={{ marginBottom: 4, marginTop: 16 }}>Agreed prices (optional)</h3>
       <textarea
         value={agreed}
         onChange={(e) => setAgreed(e.target.value)}
-        placeholder={"One per line, for example:\nPaper cup 16oz - RM 0.45 each\nWhite sugar 1kg - RM 3.20 each"}
-        rows={4}
-        style={{ ...field, width: "100%", fontSize: 16, padding: 12 }}
+        placeholder={"One per line, for example:\nSafety gloves box 100 - USD 38.00"}
+        rows={3}
+        style={{ ...field, width: "100%", fontSize: 15, padding: 10 }}
       />
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 12, alignItems: "end" }}>
@@ -312,9 +310,9 @@ export default function VendorOverchargePage() {
 
       {meta && meta.status !== "ok" && (
         <p style={{ marginTop: 16, padding: 12, background: "#fff4e5", color: "#000", borderRadius: 6 }}>
-          {meta.status === "unreadable" && "The documents were too blurry to read. Try clearer photos. "}
-          {meta.status === "not_financial_document" && "No invoices or bills were found. "}
-          {meta.status === "partial" && "Only some files could be read. "}
+          {meta.status === "unreadable" && "The documents were too blurry to read."}
+          {meta.status === "not_financial_document" && "No invoices or bills were found."}
+          {meta.status === "partial" && "Only some files could be read."}
           {meta.notes}
         </p>
       )}
@@ -342,10 +340,6 @@ export default function VendorOverchargePage() {
               <strong style={{ fontSize: 16 }}>{summary.vendors.length ? summary.vendors.join(", ") : "None"}</strong>
             </div>
           </div>
-          <p style={{ fontSize: 13, opacity: 0.8 }}>
-            Estimates can overlap when one mistake triggers several flags. Dismiss flags that are
-            fine and the totals update.
-          </p>
 
           <div style={{ marginTop: 12, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={saveToHistory} disabled={saved} style={{ padding: "8px 16px", cursor: saved ? "not-allowed" : "pointer" }}>
@@ -359,7 +353,6 @@ export default function VendorOverchargePage() {
           <h2 style={{ marginTop: 32 }}>Invoices</h2>
           {docs.map((d) => {
             const active = d.findings.filter((f) => !dismissed[f.id]);
-            const hasOver = active.some((f) => f.kind === "overcharge");
             return (
               <div key={d.id} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
@@ -370,7 +363,7 @@ export default function VendorOverchargePage() {
                       {d.date || "No date"} · {d.confidence} confidence
                     </div>
                   </div>
-                  <strong>{d.currency || "MYR"} {fmt(d.total_amount)}</strong>
+                  <strong>{d.currency || "USD"} {fmt(d.total_amount)}</strong>
                 </div>
 
                 {(d.flags || []).map((fl, i) => (
@@ -378,11 +371,11 @@ export default function VendorOverchargePage() {
                 ))}
 
                 {d.findings.length === 0 ? (
-                  <p style={{ color: "green", marginBottom: 0 }}>No unusual charges found.</p>
+                  <p style={{ color: "green", marginTop: 8, marginBottom: 0 }}>No unusual charges found.</p>
                 ) : (
                   <div style={{ marginTop: 10 }}>
                     {d.findings.map((f) => {
-                      const s = SEV[f.severity];
+                      const s = SEV[f.severity] || SEV.medium;
                       const off = !!dismissed[f.id];
                       return (
                         <div
@@ -412,43 +405,28 @@ export default function VendorOverchargePage() {
                           <div style={{ flex: 1, fontSize: 14, textDecoration: off ? "line-through" : "none" }}>
                             {f.message}
                             {f.amount > 0 && (
-                              <div style={{ fontSize: 12, opacity: 0.75 }}>
-                                {f.kind === "saving" ? "Possible saving" : "Estimated overcharge"}: {d.currency || "MYR"} {fmt(f.amount)}
+                              <div style={{ fontSize: 12, opacity: 0.8, color: "#b91c1c", fontWeight: 600, marginTop: 2 }}>
+                                Estimated overcharge: {currency} {fmt(f.amount)}
                               </div>
                             )}
                           </div>
                           <button
-                            onClick={() => setDismissed((p) => ({ ...p, [f.id]: !p[f.id] }))}
-                            style={{ cursor: "pointer", fontSize: 12 }}
+                            onClick={() => setDismissed((prev) => ({ ...prev, [f.id]: !off }))}
+                            style={{ fontSize: 12, cursor: "pointer", background: "#f0f0f0", border: "1px solid #ccc", borderRadius: 4, padding: "2px 6px" }}
                           >
                             {off ? "Restore" : "Dismiss"}
                           </button>
                         </div>
                       );
                     })}
-                  </div>
-                )}
 
-                {hasOver && (
-                  <div style={{ marginTop: 10 }}>
-                    <button onClick={() => copyMessage(d, active)} style={{ padding: "8px 16px", cursor: "pointer" }}>
+                    <button
+                      onClick={() => copyMessage(d, active)}
+                      style={{ marginTop: 12, padding: "6px 12px", cursor: "pointer" }}
+                    >
                       {copied === d.id ? "Copied!" : "Copy message to vendor"}
                     </button>
                   </div>
-                )}
-
-                {d.line_items.length > 0 && (
-                  <details style={{ fontSize: 13, marginTop: 10 }}>
-                    <summary style={{ cursor: "pointer" }}>{d.line_items.length} line items</summary>
-                    {d.line_items.map((li, i) => (
-                      <div key={i}>
-                        {li.quantity != null ? `${li.quantity} × ` : ""}
-                        {li.name}
-                        {li.effective_unit_price != null ? ` @ ${fmt(li.effective_unit_price)}` : ""} = {fmt(li.line_total)}
-                        {li.agreed_unit_price != null ? ` (agreed ${fmt(li.agreed_unit_price)})` : ""}
-                      </div>
-                    ))}
-                  </details>
                 )}
               </div>
             );
