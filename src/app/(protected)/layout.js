@@ -11,7 +11,7 @@ export default function ProtectedLayout({ children }) {
 
   useEffect(() => {
     if (loading) return;
-    if (!user) router.replace("/onboarding");
+    if (!user) router.replace("/login");
     else if (!profile?.orgId) router.replace("/onboarding/welcome");
   }, [loading, user, profile, router]);
 

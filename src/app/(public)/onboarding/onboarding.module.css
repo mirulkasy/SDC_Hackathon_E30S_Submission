@@ -24,4 +24,27 @@
     bottom: 0;
     right: 0;
     transform: translate(20%, 10%) scale(1.2);
+    pointer-events: none;
+}
+
+.formWrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.continueBtn {
+    align-self: flex-start;
+}
+
+.switchText {
+    margin-top: 16px;
+    font-size: var(--fontsize-14);
+    font-weight: 500;
+    color: #666;
+}
+
+.switchText a {
+    display: inline;
+    color: var(--primary);
+    font-weight: 600;
 }

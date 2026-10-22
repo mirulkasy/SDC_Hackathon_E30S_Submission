@@ -1,0 +1,210 @@
+/* ── Page root ── */
+.addInventoryPage {
+  padding: 0 !important;
+  background-color: #f5f7f6;
+  min-height: 100svh;
+}
+
+/* ── Section 1: Top wrapper ── */
+.topWrapper {
+  width: 100svw;
+  padding: 0 20px 20px;
+  box-sizing: border-box;
+  background-color: var(--primary);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: white;
+}
+
+.topAction {
+  display: flex;
+  justify-content: space-between;
+}
+
+.topActionLogo {
+  width: 22px;
+  color: white;
+}
+
+.productName {
+  margin: 0 0 10px;
+  font-size: var(--fontsize-18);
+  font-weight: 600;
+  text-align: center;
+}
+
+.topCardWrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px;
+}
+
+.topCard {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #134f3d;
+  padding: 15px;
+  box-sizing: border-box;
+  border-radius: 12px;
+}
+
+.topCard h1 {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: var(--fontsize-13);
+  font-weight: 500;
+  color: #ccc;
+  margin: 0;
+}
+
+.topCard h1 span {
+  color: var(--secondary);
+  font-size: var(--fontsize-18);
+  font-weight: 700;
+}
+
+/* ── Section 2: Form ── */
+.formSection {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 30px 15px 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.formSection h2 {
+  margin: 0;
+  font-size: var(--fontsize-18);
+  font-weight: 600;
+}
+
+/* ── White card wrapping field groups ── */
+.formCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 15px;
+  box-sizing: border-box;
+  background-color: white;
+  border-radius: 12px;
+}
+
+/* ── Two-column grid for paired fields ── */
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Profit row ── */
+.profitHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profitHeader p {
+  margin: 0;
+  font-size: var(--fontsize-14);
+  font-weight: 500;
+  color: #333;
+}
+
+.modeToggle {
+  display: flex;
+  gap: 4px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.modeBtn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: var(--fontsize-13);
+  font-weight: 500;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.modeBtnActive {
+  background-color: white;
+  color: var(--primary);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.profitHint {
+  margin: -6px 0 0;
+  font-size: var(--fontsize-12);
+  color: #888;
+}
+
+/* ── Barcode card ── */
+.barcodeCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 15px;
+  box-sizing: border-box;
+  background-color: white;
+  border-radius: 12px;
+}
+
+.barcodeCard> :first-child {
+  /* Let the input grow, scan button stays fixed */
+  flex: 1;
+}
+
+.scanBtn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--primary);
+  border-radius: 10px;
+  background-color: transparent;
+  color: var(--primary);
+  font-size: var(--fontsize-14);
+  font-weight: 600;
+  cursor: pointer;
+  /* Align with the input's bottom edge */
+  margin-bottom: 0;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.scanBtn:active {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* ── Add Product button ── */
+.addBtn {
+  box-sizing: border-box;
+  text-align: center;
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background-color: var(--primary);
+  color: white;
+  font-size: var(--fontsize-16);
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: opacity 0.15s;
+}
+
+.addBtn:active {
+  opacity: 0.8;
+}

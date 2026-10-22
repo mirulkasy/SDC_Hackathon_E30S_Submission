@@ -1,0 +1,138 @@
+.addTransactionPage {
+    padding: 0 !important;
+    background-color: #f5f7f6;
+    min-height: 100svh;
+}
+
+/* ── Section 1: Preview header ── */
+.topWrapper {
+    width: 100svw;
+    padding: 10px 20px 20px;
+    box-sizing: border-box;
+    background-color: var(--primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: white;
+    text-align: center;
+}
+
+.previewLabel {
+    font-size: var(--fontsize-13);
+    font-weight: 500;
+    color: #ccc;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.topWrapper h2 {
+    margin: 0;
+    font-size: var(--fontsize-header);
+    font-weight: 700;
+}
+
+.previewPlus {
+    color: #4ade80;
+}
+
+.previewMinus {
+    color: #f87171;
+}
+
+.previewDesc {
+    font-size: var(--fontsize-14);
+    font-weight: 500;
+    color: #ccc;
+    max-width: 80%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Section 2: Form ── */
+.formSection {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 25px 15px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.formSection>h2 {
+    margin: 0;
+    font-size: var(--fontsize-18);
+    font-weight: 600;
+}
+
+/* Earning / Spending segmented toggle */
+.typeToggle {
+    display: flex;
+    gap: 4px;
+    background-color: #f0f0f0;
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.typeBtn {
+    text-align: center;
+    flex: 1;
+    padding: 10px 0;
+    border: none;
+    border-radius: 9px;
+    font-size: var(--fontsize-14);
+    font-weight: 500;
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.typeBtnActive {
+    background-color: white;
+    color: var(--primary);
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.formCard {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 15px;
+    box-sizing: border-box;
+    background-color: white;
+    border-radius: 12px;
+}
+
+.fieldGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.addBtn {
+    box-sizing: border-box;
+    text-align: center;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background-color: var(--primary);
+    color: white;
+    font-size: var(--fontsize-16);
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: opacity 0.15s;
+}
+
+.addBtn:active {
+    opacity: 0.8;
+}
+
+.addBtn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}

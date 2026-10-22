@@ -1,47 +1,107 @@
 .subTicketPage {
-  padding: 0 !important;
+  padding: 0 0 100px !important;
   background-color: #f5f7f6;
   min-height: 100svh;
 }
- 
-/* ── Section 1: Top wrapper ── */
-.topWrapper {
-  width: 100svw;
-  padding: 20px;
+
+/* ── Section 1: Status ── */
+.statusSection {
   box-sizing: border-box;
-  background-color: var(--primary);
+  width: 100%;
+  padding: 20px 15px 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  color: white;
+  gap: 12px;
 }
-.topAction {
+
+.statusHeader {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
 }
-.topAction a {
-  color: white;
-  display: flex;
-}
-.topActionLogo {
-  width: 22px;
-}
-.topWrapper h1 {
-  margin: 0;
-  font-size: var(--fontsize-18);
+
+/* Status pill — class names match getStatusMeta() */
+.statusPill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--fontsize-12);
   font-weight: 600;
+  white-space: nowrap;
 }
-.topDate {
+
+.statusOpen {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.statusInProgress {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.statusOnHold {
+  background-color: #e5e7eb;
+  color: #4b5563;
+}
+
+.statusResolved {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.statusClosed {
+  background-color: #1f2937;
+  color: white;
+}
+
+/* Owner status picker */
+.statusChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.statusChip {
+  padding: 8px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 999px;
+  background-color: white;
   font-size: var(--fontsize-13);
-  color: #ccc;
+  font-weight: 600;
+  color: #555;
+  transition: all 0.15s;
 }
- 
-/* ── Section 2: Detail ── */
+
+.statusChip:active {
+  transform: scale(0.97);
+}
+
+.statusChip:disabled {
+  opacity: 0.6;
+}
+
+.statusChipActive {
+  border-color: var(--primary);
+  background-color: var(--primary);
+  color: white;
+}
+
+.ownerNote {
+  margin: 0;
+  font-size: var(--fontsize-12);
+  font-style: italic;
+  color: #888;
+}
+
+/* ── Section 2 & 3: Cards ── */
 .detailSection {
   box-sizing: border-box;
   width: 100%;
   padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
+
 .detailCard {
   display: flex;
   flex-direction: column;
@@ -52,14 +112,96 @@
   background-color: white;
   border-radius: 12px;
 }
-.detailCard h2 {
+
+.detailCard>h2 {
   margin: 0;
   font-size: var(--fontsize-16);
   font-weight: 600;
 }
-.detailCard p {
+
+.metaLine {
+  margin: 0;
+  font-size: var(--fontsize-12);
+  color: #888;
+}
+
+.description {
   margin: 0;
   font-size: var(--fontsize-14);
-  line-height: 1.5;
+  line-height: 1.6;
   color: #555;
+  white-space: pre-wrap;
+}
+
+/* Row list inside the details card */
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.detailRow:last-child {
+  border-bottom: none;
+}
+
+.detailRow p {
+  margin: 0;
+  font-size: var(--fontsize-13);
+  color: #777;
+  flex-shrink: 0;
+}
+
+.detailRow span {
+  font-size: var(--fontsize-14);
+  font-weight: 600;
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Priority badge (class names match getPriorityMeta()) */
+.priorityBadge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--fontsize-11, 11px);
+  font-weight: 600;
+}
+
+.priorityLow {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.priorityMedium {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.priorityHigh {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+/* ── Section 4: Linked transaction ── */
+.txLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  background-color: var(--secondary);
+  color: var(--primary);
+  font-size: var(--fontsize-14);
+  font-weight: 700;
+  text-align: center;
+}
+
+.txLink:active {
+  opacity: 0.8;
 }

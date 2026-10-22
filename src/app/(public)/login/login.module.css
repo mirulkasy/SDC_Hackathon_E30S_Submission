@@ -1,0 +1,59 @@
+.loginPage {
+    overflow: hidden;
+}
+
+.header {
+    box-sizing: border-box;
+    padding: 30px 0px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.title {
+    padding: 10px 0 20px;
+    font-size: var(--fontsize-20);
+    font-weight: 700;
+}
+
+.formWrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.loginBtn {
+    align-self: flex-start;
+    padding: 10px 20px;
+    background-color: var(--primary);
+    color: white;
+    font-size: var(--fontsize-14);
+    font-weight: 500;
+    border-radius: 999px;
+}
+
+.loginBtn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.switchText {
+    margin-top: 16px;
+    font-size: var(--fontsize-14);
+    font-weight: 500;
+    color: #666;
+}
+
+.switchText a {
+    display: inline;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* pointer-events: none so the mascot never blocks taps on the form */
+.biscoachImg {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    transform: translate(20%, 10%) scale(1.2);
+    pointer-events: none;
+}

@@ -7,22 +7,6 @@
     min-height: 100svh;
 }
 
-.topWrapper {
-    box-sizing: border-box;
-    padding: 25px 20px;
-    width: 100svw;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: var(--primary);
-}
-
-.topWrapper h1 {
-    color: white;
-    font-size: var(--fontsize-18);
-}
-
 .stickyWrapper {
     z-index: 999;
     position: sticky;

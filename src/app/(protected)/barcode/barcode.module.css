@@ -1,0 +1,133 @@
+.barcodePage {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    padding: 0 !important;
+    min-height: 100dvh;
+    background-color: #000;
+    overflow: hidden;
+}
+
+/* ── Full-screen camera ── */
+.video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Scan guide: dims everything outside the box */
+.frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(80%, 340px);
+    aspect-ratio: 3 / 2;
+    transform: translate(-50%, -60%);
+    border: 3px solid var(--secondary);
+    border-radius: 16px;
+    box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+}
+
+/* ── Floating back button ── */
+.backBtn {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 16px);
+    left: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    color: white;
+}
+
+/* ── Floating status ── */
+.statusPill {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 22px);
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100% - 140px);
+    padding: 8px 14px;
+    border-radius: 999px;
+    background-color: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    color: white;
+    text-align: center;
+    font-size: var(--fontsize-13);
+    font-weight: 500;
+}
+
+/* Camera errors are long, so show them as a card under the top bar */
+.statusError {
+    top: calc(env(safe-area-inset-top, 0px) + 74px);
+    left: 16px;
+    right: 16px;
+    max-width: none;
+    transform: none;
+    border-radius: 12px;
+    line-height: 1.5;
+    background-color: rgba(220, 38, 38, 0.9);
+}
+
+/* ── Floating input + button ── */
+.floatingBar {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 8px 8px 18px;
+    border-radius: 999px;
+    background-color: white;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.barInput {
+    flex: 1;
+    min-width: 0;
+    height: auto;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    outline: none;
+    /* 16px stops iOS zooming the page when the input is focused */
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--dark);
+    cursor: text;
+}
+
+.barInput:focus {
+    border: none;
+}
+
+.barInput::placeholder {
+    color: #9ca3af;
+}
+
+.barBtn {
+    flex-shrink: 0;
+    padding: 11px 18px;
+    border-radius: 999px;
+    background-color: var(--primary);
+    color: white;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    transition: opacity 0.15s;
+}
+
+.barBtn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}

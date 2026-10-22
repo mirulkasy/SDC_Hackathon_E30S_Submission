@@ -1,86 +1,116 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import styles from "./ticket.module.css";
 import NavBar from "@/components/layout/NavBar";
-import Link from "next/link";
-
-const tickets = [
-  {
-    id: 1,
-    title: "Title 1",
-    date: "Date 1",
-    description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce imperdiet gravida mauris vel commodo. Mauris cursus ipsum neque, sed fringilla lacus placerat sit amet. Donec eu tellus viverra, luctus ligula consequat, convallis leo.",
-  },
-  {
-    id: 2,
-    title: "Title 2",
-    date: "Date 2",
-    description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce imperdiet gravida mauris vel commodo. Mauris cursus ipsum neque, sed fringilla lacus placerat sit amet. Donec eu tellus viverra, luctus ligula consequat, convallis leo.",
-  },
-];
+import AppBar from "@/components/layout/AppBar";
+import { useAuth } from "@/context/AuthContext";
+import {
+  subscribeTickets,
+  getStatusMeta,
+  getPriorityMeta,
+  getCategoryLabel,
+} from "@/lib/tickets";
 
 export default function TicketPage() {
+  const router = useRouter();
+  const { profile } = useAuth();
+  const orgId = profile?.orgId;
+
+  const [tickets, setTickets] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!orgId) return;
+    setLoaded(false);
+    return subscribeTickets(orgId, (items) => {
+      setTickets(items);
+      setLoaded(true);
+    });
+  }, [orgId]);
+
   return (
     <>
+      <AppBar
+        title="Tickets"
+        actionIcon={
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+            width={22}
+            height={22}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 4.5v15m7.5-7.5h-15"
+            />
+          </svg>
+        }
+        onAction={() => router.push("/ticket/add")}
+      />
+
       <main className={styles.ticketPage}>
-
-        {/* ── Section 1: Top Header ── */}
-        <section className={styles.topWrapper}>
-          <div className={styles.topAction}>
-            <button aria-label="Back">
-              <svg
-                className={styles.topActionLogo}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
-                />
-              </svg>
-            </button>
-            <h1>Tickets</h1>
-          </div>
-        </section>
-
         {/* ── Section 2: Ticket List ── */}
         <section className={styles.ticketSection}>
           <div className={styles.ticketList}>
-            {tickets.map((ticket) => (
-              <div className={styles.ticketCard} key={ticket.id}>
-                <div className={styles.ticketRow}>
-                  <h2>{ticket.title}</h2>
-                  <span>{ticket.date}</span>
-                  <button aria-label="More options">
-                    <svg
-                      className={styles.ticketMoreLogo}
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth="1.5"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                <p>{ticket.description}</p>
-                <Link className={styles.viewButton} href={`/ticket/${ticket.id}`}>
-                  View details
-                </Link>
+            {!loaded && <p className={styles.emptyText}>Loading...</p>}
+            {loaded && tickets.length === 0 && (
+              <div className={styles.emptyState}>
+                <h2>No tickets yet</h2>
+                <p>
+                  Report a problem with cash flow, inventory or your account and
+                  the owner will pick it up here.
+                </p>
               </div>
-            ))}
+            )}
+
+            {tickets.map((ticket) => {
+              const status = getStatusMeta(ticket.status);
+              const priority = getPriorityMeta(ticket.priority);
+              return (
+                <Link
+                  key={ticket.id}
+                  href={`/ticket/${ticket.id}`}
+                  className={styles.ticketCard}
+                >
+                  <div className={styles.ticketTop}>
+                    <h2>{ticket.title}</h2>
+                    <span
+                      className={`${styles.statusPill} ${styles[status.className]}`}
+                    >
+                      {status.label}
+                    </span>
+                  </div>
+
+                  <div className={styles.ticketMeta}>
+                    <span className={styles.ticketNo}>{ticket.ticketNo}</span>
+                    <span className={styles.metaSep}>·</span>
+                    <span>{getCategoryLabel(ticket.category)}</span>
+                    <span className={styles.metaSep}>·</span>
+                    <span
+                      className={`${styles.priorityBadge} ${styles[priority.className]}`}
+                    >
+                      {priority.label}
+                    </span>
+                  </div>
+
+                  <p className={styles.ticketDesc}>{ticket.description}</p>
+
+                  <div className={styles.ticketFooter}>
+                    <span>by {ticket.reportedBy.name}</span>
+                    <span>{ticket.createdLabel}</span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
-
       </main>
 
       <NavBar />

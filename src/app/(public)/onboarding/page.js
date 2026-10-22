@@ -4,14 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CustomInput from "@/components/input/CustomInput";
 import Image from "next/image";
+import Link from "next/link";
 import styles from "./onboarding.module.css";
 import { registerUser } from "@/lib/onboarding";
 
 const AUTH_ERRORS = {
-  "auth/email-already-in-use": { field: "email", msg: "This email is already registered." },
+  "auth/email-already-in-use": {
+    field: "email",
+    msg: "This email is already registered.",
+  },
   "auth/invalid-email": { field: "email", msg: "Enter a valid email address." },
-  "auth/weak-password": { field: "password", msg: "Password must be at least 6 characters." },
-  "auth/network-request-failed": { field: "form", msg: "Network error. Check your connection." },
+  "auth/weak-password": {
+    field: "password",
+    msg: "Password must be at least 6 characters.",
+  },
+  "auth/network-request-failed": {
+    field: "form",
+    msg: "Network error. Check your connection.",
+  },
 };
 
 export default function OnboardingPage() {
@@ -31,8 +41,10 @@ export default function OnboardingPage() {
   const validate = () => {
     const next = {};
     if (!values.name.trim()) next.name = "Name is required.";
-    if (!/^\S+@\S+\.\S+$/.test(values.email)) next.email = "Enter a valid email address.";
-    if (values.password.length < 6) next.password = "Use at least 6 characters.";
+    if (!/^\S+@\S+\.\S+$/.test(values.email))
+      next.email = "Enter a valid email address.";
+    if (values.password.length < 6)
+      next.password = "Use at least 6 characters.";
     if (values.confirmPassword !== values.password)
       next.confirmPassword = "Passwords do not match.";
     return next;
@@ -56,7 +68,10 @@ export default function OnboardingPage() {
     } catch (err) {
       console.error(err);
       const known = AUTH_ERRORS[err.code];
-      setErrors({ [known?.field ?? "form"]: known?.msg ?? "Something went wrong. Please try again." });
+      setErrors({
+        [known?.field ?? "form"]:
+          known?.msg ?? "Something went wrong. Please try again.",
+      });
       setSubmitting(false);
     }
   };
@@ -115,6 +130,9 @@ export default function OnboardingPage() {
           {submitting ? "Creating account..." : "Register"}
         </button>
       </form>
+      <p className={styles.switchText}>
+        Already have an account? <Link href="/login">Log in</Link>
+      </p>
       <Image
         className={styles.biscoachImg}
         src="/assets/biscoach/onboarding.png"

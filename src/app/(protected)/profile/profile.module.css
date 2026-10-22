@@ -1,0 +1,226 @@
+.profilePage {
+    padding: 10px 0 150px !important;
+    background-color: #f5f7f6;
+    min-height: 100svh;
+}
+
+/* ── Section 1: Organization code banner ── */
+.codeWrapper {
+    padding: 10px 15px;
+    box-sizing: border-box;
+}
+
+.codeBanner {
+    position: relative;
+    box-sizing: border-box;
+    padding: 20px 15px;
+    border-radius: 12px;
+    background-color: #134f3d;
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+}
+
+.codeInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.codeInfo h1 {
+    font-size: var(--fontsize-16);
+    font-weight: 600;
+    color: white;
+}
+
+.codeInfo p {
+    padding: 5px 0;
+    width: 80%;
+    font-size: var(--fontsize-14);
+    font-style: italic;
+    font-weight: 500;
+    color: #ccc;
+}
+
+.codeInfo h2 {
+    margin-top: 10px;
+    padding: 10px 8px;
+    border-radius: 5px;
+    background-color: rgba(0,0,0,0.3);
+    border-left: 4px solid white;
+    font-size: var(--fontsize-20);
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: white;
+}
+
+.copyBtn {
+    margin-top: 5px;
+    width: fit-content;
+    background-color: white;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-weight: 600;
+    font-size: var(--fontsize-13);
+}
+
+.copyBtn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* ── Sections 3-5: Cards ── */
+.section {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 15px 15px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sectionTitle {
+    margin: 0 0 0 5px;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.card {
+    box-sizing: border-box;
+    width: 100%;
+    background-color: white;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Telegram-style row: small label on top, value below, divider between rows */
+.field {
+    position: relative;
+    box-sizing: border-box;
+    padding: 12px 45px 12px 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.field:last-child {
+    border-bottom: none;
+}
+
+.fieldLabel {
+    font-size: var(--fontsize-13);
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* Borderless input that reads like plain text until tapped */
+.fieldInput {
+    box-sizing: border-box;
+    width: 100%;
+    height: auto;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: var(--fontsize-16);
+    font-weight: 500;
+    color: var(--dark);
+    cursor: text;
+    user-select: text;
+}
+
+.fieldText {
+    font-size: var(--fontsize-16);
+    font-weight: 500;
+    color: var(--dark);
+    word-break: break-all;
+}
+
+.emailText {
+    color: #ccc;
+}
+
+.typeWrapper {
+    padding: 6px 0 2px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.typeBtn {
+    flex: 1 1 auto;
+    padding: 8px 10px;
+    background-color: white;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+    border-radius: 999px;
+    text-align: center;
+}
+
+.typeBtnActive {
+    background-color: var(--primary);
+    color: white;
+}
+
+.hint {
+    margin: 0 0 0 5px;
+    font-size: var(--fontsize-12);
+    color: #888;
+}
+
+.errorText {
+    margin: 0 0 0 5px;
+    font-size: var(--fontsize-12);
+    font-weight: 500;
+    color: #ff3b30;
+}
+
+.errorText:empty {
+    display: none;
+}
+
+.saveBtn {
+    align-self: flex-end;
+    background-color: var(--primary);
+    color: white;
+    border-radius: 999px;
+    padding: 10px 24px;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+}
+
+.saveBtn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.logoutBtn {
+    margin-top: 30px;
+    border-radius: 12px;
+    border: 2px solid #ff3b30;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px 15px;
+    font-size: var(--fontsize-14);
+    font-weight: 500;
+    color: #ff3b30;
+
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.logoutLogo {
+    width: 22px;
+}

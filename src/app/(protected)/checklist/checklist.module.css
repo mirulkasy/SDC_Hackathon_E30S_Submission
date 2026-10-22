@@ -1,0 +1,185 @@
+.checklistPage {
+    padding: 0 0 110px !important;
+    background-color: #f5f7f6;
+    min-height: 100svh;
+}
+
+/* ── Section 1: Top wrapper ── */
+.topWrapper {
+    width: 100svw;
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: var(--primary);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    color: white;
+}
+
+.topAction {
+    display: flex;
+    justify-content: space-between;
+}
+
+.topAction a {
+    color: white;
+    display: flex;
+}
+
+.topActionLogo {
+    width: 22px;
+}
+
+.topWrapper>h1 {
+    margin: 0 0 10px;
+    font-size: var(--fontsize-18);
+    font-weight: 600;
+}
+
+.progressCard {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background-color: #134f3d;
+    padding: 15px;
+    box-sizing: border-box;
+    border-radius: 12px;
+}
+
+.progressCard h1 {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: var(--fontsize-13);
+    font-weight: 500;
+    color: #ccc;
+}
+
+.progressCard h1 span {
+    color: var(--secondary);
+    font-size: var(--fontsize-18);
+    font-weight: 700;
+}
+
+.progressTrack {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background-color: #0b3d2e;
+    overflow: hidden;
+}
+
+.progressBar {
+    height: 100%;
+    border-radius: 999px;
+    background-color: var(--secondary);
+    transition: width var(--animation-apple);
+}
+
+/* ── Section 2: Groups ── */
+.groupSection {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 15px 15px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.groupTitle {
+    margin: 0 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.groupTitle span {
+    font-size: var(--fontsize-12);
+    font-weight: 500;
+    color: #888;
+}
+
+.card {
+    box-sizing: border-box;
+    width: 100%;
+    background-color: white;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.item {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 14px 15px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: left;
+}
+
+.item:last-child {
+    border-bottom: none;
+}
+
+.check {
+    flex-shrink: 0;
+    width: 24px;
+    aspect-ratio: 1/1;
+    box-sizing: border-box;
+    border: 2px solid #d1d1d6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: var(--animation-apple);
+}
+
+.check svg {
+    width: 13px;
+}
+
+.itemDone .check {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: var(--secondary);
+}
+
+.itemBody {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.itemTitle {
+    font-size: var(--fontsize-16);
+    font-weight: 600;
+}
+
+.itemDone .itemTitle {
+    color: #999;
+    text-decoration: line-through;
+}
+
+.itemDesc {
+    font-size: var(--fontsize-14);
+    line-height: 1.5;
+    color: #555;
+}
+
+.itemTag {
+    width: fit-content;
+    margin-top: 2px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background-color: #f5f7f6;
+    font-size: var(--fontsize-12);
+    font-weight: 600;
+    color: var(--primary);
+}

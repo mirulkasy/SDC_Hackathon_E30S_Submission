@@ -4,11 +4,11 @@
   background-color: #f5f7f6;
   min-height: 100svh;
 }
- 
+
 /* ── Section 1: Top wrapper ── */
 .topWrapper {
   width: 100svw;
-  padding: 20px;
+  padding: 0 20px 20px;
   box-sizing: border-box;
   background-color: var(--primary);
   display: flex;
@@ -16,20 +16,23 @@
   gap: 10px;
   color: white;
 }
+
 .topAction {
   display: flex;
   justify-content: space-between;
 }
+
 .topActionLogo {
   width: 22px;
 }
+
 .topWrapper h1 {
   margin: 0 0 10px;
   font-size: var(--fontsize-18);
   font-weight: 600;
 }
 
-.productName{
+.productName {
   text-align: center;
 }
 
@@ -38,6 +41,7 @@
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 10px;
 }
+
 .topCard {
   display: flex;
   align-items: center;
@@ -47,6 +51,7 @@
   box-sizing: border-box;
   border-radius: 12px;
 }
+
 .topCard h1 {
   display: flex;
   flex-direction: column;
@@ -56,12 +61,13 @@
   color: #ccc;
   margin: 0;
 }
+
 .topCard h1 span {
   color: var(--secondary);
   font-size: var(--fontsize-18);
   font-weight: 700;
 }
- 
+
 /* ── Section 2: Details ── */
 .detailSection {
   box-sizing: border-box;
@@ -71,6 +77,7 @@
   flex-direction: column;
   gap: 10px;
 }
+
 .detailSection h2,
 .suggestionSection h2 {
   margin: 0;
@@ -80,11 +87,13 @@
   align-items: center;
   gap: 8px;
 }
+
 .detailList {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
+
 .detailRow {
   display: flex;
   justify-content: space-between;
@@ -95,19 +104,22 @@
   background-color: white;
   border-radius: 12px;
 }
+
 .detailRow p {
   margin: 0;
   font-size: var(--fontsize-14);
 }
+
 .detailRow p:first-child {
   color: #666;
   font-weight: 500;
 }
+
 .detailRow p:last-child {
   font-weight: 700;
   text-align: right;
 }
- 
+
 /* ── Section 3: AI price suggestion ── */
 .suggestionSection {
   box-sizing: border-box;
@@ -117,6 +129,7 @@
   flex-direction: column;
   gap: 10px;
 }
+
 .aiBadge {
   padding: 4px 10px;
   border-radius: 999px;
@@ -125,11 +138,13 @@
   font-size: var(--fontsize-12);
   font-weight: 500;
 }
+
 .suggestionGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
 }
+
 .suggestionCard {
   display: flex;
   flex-direction: column;
@@ -139,6 +154,7 @@
   background-color: white;
   border-radius: 12px;
 }
+
 .suggestionCard h3 {
   margin: 0;
   width: fit-content;
@@ -148,22 +164,118 @@
   font-size: var(--fontsize-12);
   font-weight: 600;
 }
+
 .suggestionRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .suggestionRow p {
   margin: 0;
   font-size: var(--fontsize-14);
 }
+
 .suggestionRow p:first-child {
   color: #666;
   font-size: var(--fontsize-13);
 }
+
 .suggestionRow p:last-child {
   font-weight: 700;
 }
+
 .profitValue {
+  color: var(--primary);
+}
+
+/* ── Editable form card ── */
+.formCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 15px;
+  box-sizing: border-box;
+  background-color: white;
+  border-radius: 12px;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Profit row ── */
+.profitHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profitHeader p {
+  margin: 0;
+  font-size: var(--fontsize-14);
+  font-weight: 500;
+  color: #333;
+}
+
+.modeToggle {
+  display: flex;
+  gap: 4px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.modeBtn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: var(--fontsize-13);
+  font-weight: 500;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.modeBtnActive {
+  background-color: white;
+  color: var(--primary);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.profitHint {
+  margin: -6px 0 0;
+  font-size: var(--fontsize-12);
+  color: #888;
+}
+
+/* ── Save / saved feedback ── */
+.saveBtn {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background-color: var(--primary);
+  color: white;
+  font-size: var(--fontsize-16);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.saveBtn:active {
+  opacity: 0.8;
+}
+
+.savedText {
+  margin: 0;
+  text-align: center;
+  font-size: var(--fontsize-14);
+  font-weight: 600;
   color: var(--primary);
 }

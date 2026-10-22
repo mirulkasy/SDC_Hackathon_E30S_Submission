@@ -17,7 +17,14 @@
 
 .topAction {
     display: flex;
-    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    padding-bottom: 10px;
+}
+
+.topAction a {
+    color: white;
+    display: flex;
 }
 
 .topActionLogo {
@@ -25,7 +32,6 @@
 }
 
 .topWrapper h1 {
-    margin: 0 0 10px;
     font-size: var(--fontsize-18);
     font-weight: 600;
 }
@@ -105,7 +111,7 @@
     flex-direction: column;
     gap: 10px;
     overflow: hidden;
-    
+
 }
 
 .aidBanner h1 {

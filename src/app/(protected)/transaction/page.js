@@ -2,22 +2,24 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import styles from "./transaction.module.css";
 import NavBar from "@/components/layout/NavBar";
+import { useAuth } from "@/context/AuthContext";
 import {
-  transactions,
+  recentMonthKeys,
+  subscribeMonthTransactions,
   formatAmount,
   formatDate,
   formatRM,
   getCategoryColor,
-} from "./data/transactions";
+} from "@/lib/transactions";
+import AppBar from "@/components/layout/AppBar";
 
 const RADIUS = 80;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-const monthKeys = [
-  ...new Set(transactions.map((item) => item.date.slice(0, 7))),
-].sort();
+const monthKeys = recentMonthKeys(12);
 const multipleYears = new Set(monthKeys.map((key) => key.slice(0, 4))).size > 1;
 
 function getMonthLabel(key) {
@@ -29,15 +31,31 @@ function getMonthLabel(key) {
 }
 
 export default function TransactionPage() {
+  const router = useRouter();
+  
+  const { profile } = useAuth();
+  const orgId = profile?.orgId;
+
   const [month, setMonth] = useState(monthKeys[monthKeys.length - 1]);
   const [tab, setTab] = useState("earning");
   const [category, setCategory] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [loaded, setLoaded] = useState(false);
 
   // Instagram-style collapsing bar: offset = clamp(offset - delta, -barHeight, 0)
   const topRef = useRef(null); // header above the bar (defines its natural position)
   const stickyRef = useRef(null);
   const offsetRef = useRef(0);
   const lastScrollYRef = useRef(0);
+
+  useEffect(() => {
+    if (!orgId) return;
+    setLoaded(false);
+    return subscribeMonthTransactions(orgId, month, (items) => {
+      setTransactions(items);
+      setLoaded(true);
+    });
+  }, [orgId, month]);
 
   useEffect(() => {
     const bar = stickyRef.current;
@@ -79,9 +97,7 @@ export default function TransactionPage() {
   const isEarning = tab === "earning";
 
   const { items, categories, total } = useMemo(() => {
-    const items = transactions
-      .filter((item) => item.type === tab && item.date.startsWith(month))
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    const items = transactions.filter((item) => item.type === tab);
 
     const totals = {};
     items.forEach((item) => {
@@ -94,7 +110,7 @@ export default function TransactionPage() {
 
     const total = categories.reduce((sum, c) => sum + c.value, 0);
     return { items, categories, total };
-  }, [tab, month]);
+  }, [transactions, tab]);
 
   // Donut segments
   let accumulated = 0;
@@ -128,11 +144,28 @@ export default function TransactionPage() {
 
   return (
     <>
+      <AppBar
+        title="Transaction"
+        actionIcon={
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+            width={22}
+            height={22}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 4.5v15m7.5-7.5h-15"
+            />
+          </svg>
+        }
+        onAction={() => router.push("/transaction/add")}
+      />
       <main className={styles.transactionPage}>
-        <section ref={topRef} className={styles.topWrapper}>
-          <h1>Transaction</h1>
-        </section>
-
         {/* Collapsing bar: transform is set directly in the scroll handler */}
         <section ref={stickyRef} className={styles.stickyWrapper}>
           {/* ── Section 1: Month Filter ── */}
@@ -246,7 +279,8 @@ export default function TransactionPage() {
         {/* ── Section 4: Transaction List ── */}
         <section className={styles.listSection}>
           <div className={styles.listGrid}>
-            {visibleItems.length === 0 && (
+            {!loaded && <p className={styles.emptyText}>Loading...</p>}
+            {loaded && visibleItems.length === 0 && (
               <p className={styles.emptyText}>
                 No transactions for this month.
               </p>
