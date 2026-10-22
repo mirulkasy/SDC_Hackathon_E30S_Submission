@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./addInventory.module.css";
 import CustomInput from "@/components/input/CustomInput";
@@ -120,11 +120,22 @@ export default function AddInventoryPage() {
         },
       });
       router.push("/inventory");
+      // The page stays mounted in the background, so reset it
+      setForm({ ...EMPTY_FORM, barcode: "" });
+      setErrors({});
+      setProfitMode("rm");
+      setProfitDraft(null);
+      setSaving(false);
     } catch (err) {
       console.error("Add product failed:", err);
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    const code = searchParams.get("barcode");
+    if (code) setForm((f) => ({ ...f, barcode: code }));
+  }, [searchParams]);
 
   // Derived preview values for the top header
   const previewName = form.name.trim() || "New Product";

@@ -33,15 +33,15 @@ const METHOD_OPTIONS = [
 // en-CA locale gives "YYYY-MM-DD", which is what <input type="date"> expects
 const todayISO = () => new Date().toLocaleDateString("en-CA");
 
-const EMPTY_FORM = {
-  type: "earning", // UI value; converted to "in"/"out" on save
+const makeEmptyForm = () => ({
+  type: "earning",
   description: "",
   amount: "",
   category: "",
   date: todayISO(),
   method: "",
   note: "",
-};
+});
 
 const validate = (form) => {
   const errors = {};
@@ -59,7 +59,7 @@ export default function AddTransactionPage() {
   const { user, profile } = useAuth();
   const orgId = profile?.orgId;
 
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(makeEmptyForm);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -94,6 +94,9 @@ export default function AddTransactionPage() {
         },
       });
       router.push("/transaction");
+      setForm(makeEmptyForm());
+      setErrors({});
+      setSaving(false);
     } catch (err) {
       console.error("Add transaction failed:", err);
       setSaving(false);

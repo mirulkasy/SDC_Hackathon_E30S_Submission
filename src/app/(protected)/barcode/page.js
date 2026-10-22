@@ -51,7 +51,7 @@ export default function BarcodePage() {
         audioRef.current.currentTime = 0;
         audioRef.current.play().catch(() => {});
       }
-      
+
       router.push(
         product
           ? `/inventory/${product.id}`
@@ -71,6 +71,10 @@ export default function BarcodePage() {
   }, []);
 
   useEffect(() => {
+    busyRef.current = false;
+    setManual("");
+    setStatus("Starting camera...");
+    setCameraError("");
     let cancelled = false;
     let stream = null;
     let controls = null;

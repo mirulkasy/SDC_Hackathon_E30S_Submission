@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./summary.module.css";
 import NavBar from "@/components/layout/NavBar";
+import { useAuth } from "@/context/AuthContext";
+import { subscribeSummary, blankSummary } from "@/lib/summary";
+import { subscribeProducts, LOW_STOCK_THRESHOLD } from "@/lib/inventory";
 
 /* ---------- constants (UI only, no backend) ---------- */
 
@@ -134,9 +137,15 @@ const compact = new Intl.NumberFormat("en-MY", {
 });
 
 const sum = (list) => list.reduce((total, value) => total + value, 0);
+// returns null when there's nothing to compare against
 const pct = (current, previous) =>
-  previous === 0 ? 0 : ((current - previous) / previous) * 100;
-const formatRM = (value) => `RM ${Math.round(value).toLocaleString("en-MY")}`;
+  previous === 0 ? null : ((current - previous) / Math.abs(previous)) * 100;
+
+const formatRM = (value) =>
+  `RM ${value.toLocaleString("en-MY", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 
 function niceMax(max) {
   const power = Math.pow(10, Math.floor(Math.log10(max)));
@@ -159,6 +168,8 @@ function smoothPath(points) {
 /* ---------- small chart components ---------- */
 
 function Trend({ change, inverse = false, suffix = "vs previous" }) {
+  if (change === null)
+    return <p className={styles.trendNone}>No previous data</p>;
   const up = change >= 0;
   const good = inverse ? !up : up;
   return (
@@ -169,6 +180,7 @@ function Trend({ change, inverse = false, suffix = "vs previous" }) {
 }
 
 function Badge({ change }) {
+  if (change === null) return null;
   const up = change >= 0;
   return (
     <span className={up ? styles.badgeUp : styles.badgeDown}>
@@ -346,47 +358,91 @@ function RankList({ items, max, color }) {
 /* ---------- page ---------- */
 
 export default function SummaryPage() {
+  const { profile } = useAuth();
+  const orgId = profile?.orgId;
+
   const [filter, setFilter] = useState("monthly");
-  const current = SUMMARY_DATA[filter];
+  const [data, setData] = useState(null);
+  const [products, setProducts] = useState(null);
+
+  useEffect(() => {
+    if (!orgId) return;
+    setData(null);
+    return subscribeSummary(orgId, filter, setData);
+  }, [orgId, filter]);
+
+  useEffect(() => {
+    if (!orgId) return;
+    return subscribeProducts(orgId, setProducts);
+  }, [orgId]);
+
+  const current = data ?? blankSummary(filter);
 
   const salesTotal = sum(current.sales);
+  const spendingTotal = sum(current.spending);
   const grossTotal = sum(current.gross);
   const netTotal = sum(current.net);
+  const prevSalesTotal = sum(current.prevSales);
+  const prevSpendingTotal = sum(current.prevSpending);
   const prevNetTotal = sum(current.prevNet);
-  const spendingTotal = salesTotal - netTotal;
-  const cashNet = sum(current.cashIn) - sum(current.cashOut);
-  const profitChange = pct(netTotal, prevNetTotal);
+  const cashNet = salesTotal - spendingTotal;
 
-  const grossMargin = (grossTotal / salesTotal) * 100;
-  const netMargin = (netTotal / salesTotal) * 100;
+  const compare = (now, before) => (current.hasPrev ? pct(now, before) : null);
+  const salesChange = compare(salesTotal, prevSalesTotal);
+  const spendingChange = compare(spendingTotal, prevSpendingTotal);
+  const profitChange = compare(netTotal, prevNetTotal);
+
+  const grossMargin = salesTotal > 0 ? (grossTotal / salesTotal) * 100 : 0;
+  const netMargin = salesTotal > 0 ? (netTotal / salesTotal) * 100 : 0;
 
   const kpis = [
-    {
-      label: "Sales",
-      value: formatRM(salesTotal),
-      change: current.change.sales,
-    },
+    { label: "Sales", value: formatRM(salesTotal), change: salesChange },
     { label: "Profit", value: formatRM(netTotal), change: profitChange },
     {
       label: "Spending",
       value: formatRM(spendingTotal),
-      change: current.change.spending,
+      change: spendingChange,
       inverse: true,
     },
-    {
-      label: "Cash Flow",
-      value: formatRM(cashNet),
-      change: current.change.cash,
-    },
+    { label: "Cash Flow", value: formatRM(cashNet), change: profitChange },
   ];
 
-  const inventoryTotal = INVENTORY.inStock + INVENTORY.low + INVENTORY.out;
-  const bestMax = BEST_SELLERS[0].sold * current.rankScale;
-  const scaleRank = (list) =>
-    list.map((item) => ({
-      ...item,
-      sold: Math.max(Math.round(item.sold * current.rankScale), 1),
-    }));
+  // ── Inventory (live, independent of the period filter) ──
+  const stock = useMemo(() => {
+    const list = products ?? [];
+    const total = list.length;
+    const out = list.filter((p) => p.stock <= 0).length;
+    const low = list.filter(
+      (p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD,
+    ).length;
+    const unitsByCategory = {};
+    list.forEach((p) => {
+      unitsByCategory[p.category] =
+        (unitsByCategory[p.category] ?? 0) + p.stock;
+    });
+    const pctOf = (n) => (total ? Math.round((n / total) * 100) : 0);
+    return {
+      total,
+      out,
+      low,
+      inStock: total - out - low,
+      pctIn: pctOf(total - out - low),
+      pctLow: pctOf(low),
+      pctOut: pctOf(out),
+      value: list.reduce((s, p) => s + p.cost * p.stock, 0),
+      units: list.reduce((s, p) => s + p.stock, 0),
+      alerts: list
+        .filter((p) => p.stock <= LOW_STOCK_THRESHOLD)
+        .sort((a, b) => a.stock - b.stock)
+        .slice(0, 6),
+      byCategory: Object.entries(unitsByCategory)
+        .map(([name, sold]) => ({ name, sold }))
+        .sort((a, b) => b.sold - a.sold)
+        .slice(0, 6),
+    };
+  }, [products]);
+
+  const barWidth = (n) => `${(n / (stock.total || 1)) * 100}%`;
 
   return (
     <>
@@ -442,7 +498,7 @@ export default function SummaryPage() {
             <div className={styles.card}>
               <div className={styles.cardHead}>
                 <h1>Gross vs Net Profit</h1>
-                <p>Where the money is lost</p>
+                <p>Gross = sales minus stock purchases</p>
               </div>
               <div className={styles.statGrid}>
                 <div className={styles.statBox}>
@@ -471,7 +527,11 @@ export default function SummaryPage() {
               <div className={styles.compareRow}>
                 <div className={styles.compareValue}>
                   <h1>{formatRM(netTotal)}</h1>
-                  <span>vs {formatRM(prevNetTotal)}</span>
+                  <span>
+                    {current.hasPrev
+                      ? `vs ${formatRM(prevNetTotal)}`
+                      : "No previous period"}
+                  </span>
                 </div>
                 <Badge change={profitChange} />
               </div>
@@ -510,16 +570,16 @@ export default function SummaryPage() {
                   <h1>{formatRM(cashNet)}</h1>
                   <span>net cash flow</span>
                 </div>
-                <Badge change={current.change.cash} />
+                <Badge change={profitChange} />
               </div>
               <BarChart
                 labels={current.labels}
                 series={[
-                  { name: "Cash in", color: COLOR_MID, values: current.cashIn },
+                  { name: "Cash in", color: COLOR_MID, values: current.sales },
                   {
                     name: "Cash out",
                     color: COLOR_YELLOW,
-                    values: current.cashOut,
+                    values: current.spending,
                   },
                 ]}
               />
@@ -530,18 +590,22 @@ export default function SummaryPage() {
                 <h1>Spending Breakdown</h1>
                 <p>By category</p>
               </div>
-              <div className={styles.donutWrapper}>
-                <DonutChart items={SPENDING_BREAKDOWN} total={spendingTotal} />
-                <div className={styles.donutList}>
-                  {SPENDING_BREAKDOWN.map((item) => (
-                    <div className={styles.donutRow} key={item.name}>
-                      <i style={{ backgroundColor: item.color }} />
-                      <p>{item.name}</p>
-                      <span>{item.percent}%</span>
-                    </div>
-                  ))}
+              {current.breakdown.length === 0 ? (
+                <p className={styles.emptyText}>No spending in this period.</p>
+              ) : (
+                <div className={styles.donutWrapper}>
+                  <DonutChart items={current.breakdown} total={spendingTotal} />
+                  <div className={styles.donutList}>
+                    {current.breakdown.map((item) => (
+                      <div className={styles.donutRow} key={item.name}>
+                        <i style={{ backgroundColor: item.color }} />
+                        <p>{item.name}</p>
+                        <span>{item.percent}%</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </section>
@@ -549,16 +613,16 @@ export default function SummaryPage() {
         <section className={styles.contentSection}>
           <div className={styles.sectionHead}>
             <h1>Stock</h1>
-            <p>Inventory health and product ranking</p>
+            <p>Current inventory health</p>
           </div>
           <div className={styles.cardGrid}>
             <div className={styles.card}>
               <div className={styles.cardHead}>
-                <h1>Avg Stock</h1>
-                <p>Average units on hand</p>
+                <h1>Stock on Hand</h1>
+                <p>Total units across all products</p>
               </div>
               <div className={styles.bigValue}>
-                <h1>{current.avgStock.toLocaleString("en-MY")}</h1>
+                <h1>{stock.units.toLocaleString("en-MY")}</h1>
                 <span>units</span>
               </div>
             </div>
@@ -566,27 +630,27 @@ export default function SummaryPage() {
             <div className={styles.card}>
               <div className={styles.cardHead}>
                 <h1>Inventory</h1>
-                <p>Total stock value</p>
+                <p>Total stock value at cost</p>
               </div>
               <div className={styles.bigValue}>
-                <h1>{formatRM(INVENTORY.value)}</h1>
+                <h1>{formatRM(stock.value)}</h1>
               </div>
               <div className={styles.stackBar}>
                 <div
                   style={{
-                    width: `${(INVENTORY.inStock / inventoryTotal) * 100}%`,
+                    width: barWidth(stock.inStock),
                     backgroundColor: COLOR_MID,
                   }}
                 />
                 <div
                   style={{
-                    width: `${(INVENTORY.low / inventoryTotal) * 100}%`,
+                    width: barWidth(stock.low),
                     backgroundColor: COLOR_YELLOW,
                   }}
                 />
                 <div
                   style={{
-                    width: `${(INVENTORY.out / inventoryTotal) * 100}%`,
+                    width: barWidth(stock.out),
                     backgroundColor: "#ef4444",
                   }}
                 />
@@ -594,42 +658,33 @@ export default function SummaryPage() {
               <div className={styles.legend}>
                 <div className={styles.legendItem}>
                   <i style={{ backgroundColor: COLOR_MID }} />
-                  <p>In stock {INVENTORY.inStock}%</p>
+                  <p>In stock {stock.pctIn}%</p>
                 </div>
                 <div className={styles.legendItem}>
                   <i style={{ backgroundColor: COLOR_YELLOW }} />
-                  <p>Low {INVENTORY.low}%</p>
+                  <p>Low {stock.pctLow}%</p>
                 </div>
                 <div className={styles.legendItem}>
                   <i style={{ backgroundColor: "#ef4444" }} />
-                  <p>Out {INVENTORY.out}%</p>
+                  <p>Out {stock.pctOut}%</p>
                 </div>
               </div>
             </div>
 
             <div className={`${styles.card} ${styles.cardWide}`}>
               <div className={styles.cardHead}>
-                <h1>Stock Ranking</h1>
-                <p>Units sold, best sellers and slow movers</p>
+                <h1>Stock by Category</h1>
+                <p>Units on hand</p>
               </div>
-              <div className={styles.rankWrapper}>
-                <div className={styles.rankColumn}>
-                  <h2>Best sellers</h2>
-                  <RankList
-                    items={scaleRank(BEST_SELLERS)}
-                    max={bestMax}
-                    color={COLOR_MID}
-                  />
-                </div>
-                <div className={styles.rankColumn}>
-                  <h2>Slow movers</h2>
-                  <RankList
-                    items={scaleRank(SLOW_MOVERS)}
-                    max={bestMax}
-                    color={COLOR_GRAY}
-                  />
-                </div>
-              </div>
+              {stock.byCategory.length === 0 ? (
+                <p className={styles.emptyText}>No products yet.</p>
+              ) : (
+                <RankList
+                  items={stock.byCategory}
+                  max={stock.byCategory[0].sold}
+                  color={COLOR_MID}
+                />
+              )}
             </div>
 
             <div className={`${styles.card} ${styles.cardWide}`}>
@@ -637,28 +692,32 @@ export default function SummaryPage() {
                 <h1>Low Stock Alerts</h1>
                 <p>Items about to run out</p>
               </div>
-              <div className={styles.alertList}>
-                {LOW_STOCK.map((item) => {
-                  const critical = item.left / item.min < 0.4;
-                  return (
-                    <div className={styles.alertRow} key={item.name}>
-                      <div className={styles.alertInfo}>
-                        <h1>{item.name}</h1>
-                        <p>
-                          {item.left} left · min {item.min}
-                        </p>
+              {stock.alerts.length === 0 ? (
+                <p className={styles.emptyText}>Nothing is running low.</p>
+              ) : (
+                <div className={styles.alertList}>
+                  {stock.alerts.map((item) => {
+                    const critical = item.stock / LOW_STOCK_THRESHOLD < 0.4;
+                    return (
+                      <div className={styles.alertRow} key={item.id}>
+                        <div className={styles.alertInfo}>
+                          <h1>{item.name}</h1>
+                          <p>
+                            {item.stock} left · min {LOW_STOCK_THRESHOLD}
+                          </p>
+                        </div>
+                        <span
+                          className={
+                            critical ? styles.alertCritical : styles.alertLow
+                          }
+                        >
+                          {critical ? "Critical" : "Low"}
+                        </span>
                       </div>
-                      <span
-                        className={
-                          critical ? styles.alertCritical : styles.alertLow
-                        }
-                      >
-                        {critical ? "Critical" : "Low"}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </section>

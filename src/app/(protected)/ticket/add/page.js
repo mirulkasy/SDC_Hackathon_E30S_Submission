@@ -54,6 +54,9 @@ export default function AddTicketPage() {
     try {
       const id = await addTicket({ orgId, user, ticket: form });
       router.push(`/ticket/${id}`);
+      setForm(EMPTY_FORM);
+      setErrors({});
+      setSaving(false);
     } catch (err) {
       console.error("Add ticket failed:", err);
       setSaving(false);

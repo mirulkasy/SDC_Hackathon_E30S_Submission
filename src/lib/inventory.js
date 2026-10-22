@@ -18,6 +18,7 @@ import { db } from "./firebase";
 /* Money is integer sen, same as transactions: RM 12.50 = 1250         */
 /* ------------------------------------------------------------------ */
 
+export const LOW_STOCK_THRESHOLD = 5;
 export const PRODUCT_CATEGORIES = ["Food", "Drinks", "Household"];
 
 export function senToRM(sen) {
