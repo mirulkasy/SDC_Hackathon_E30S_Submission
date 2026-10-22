@@ -1,0 +1,562 @@
+/* ── Page root ── */
+.publicityPage {
+    --earning: #16a34a;
+    --spending: #dc2626;
+    padding: 0 0 100px !important;
+    background-color: #f5f7f6;
+    min-height: 100svh;
+}
+
+/* ── Section 1: Top wrapper + chart ── */
+.topWrapper {
+    width: 100svw;
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: var(--primary);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    color: white;
+}
+
+.topAction {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.topAction p {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    color: #ccc;
+}
+
+.topAction button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.topAction button:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.topActionLogo {
+    width: 22px;
+}
+
+.topWrapper>h1 {
+    margin: 0 0 10px;
+    font-size: var(--fontsize-18);
+    font-weight: 600;
+}
+
+.chartCard {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background-color: #134f3d;
+    padding: 15px;
+    box-sizing: border-box;
+    border-radius: 12px;
+}
+
+.chartHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.chartHeader p {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    font-weight: 500;
+    color: #ccc;
+}
+
+.chartHeader h2 {
+    margin: 0;
+    font-size: var(--fontsize-18);
+    font-weight: 700;
+    color: white;
+}
+
+.changeUp,
+.changeDown {
+    font-size: var(--fontsize-12);
+    font-weight: 600;
+}
+
+.changeUp {
+    color: var(--secondary);
+}
+
+.changeDown {
+    color: #f87171;
+}
+
+.chartSvg {
+    display: block;
+    width: 100%;
+}
+
+.chartGrid {
+    stroke: #ffffff33;
+    stroke-width: 1;
+}
+
+.chartAxis {
+    fill: #ccc;
+    font-size: 10px;
+}
+
+.chartDay {
+    fill: #ccc;
+    font-size: 10px;
+}
+
+.chartDayActive {
+    fill: white;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.bar {
+    fill: var(--secondary);
+    opacity: 0.55;
+}
+
+.barActive {
+    fill: var(--secondary);
+}
+
+.barEmpty {
+    fill: #ffffff33;
+}
+
+.barHit {
+    fill: transparent;
+    cursor: pointer;
+}
+
+/* ── Section 2: Schedule ── */
+.scheduleWrapper {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 25px 15px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.sectionHeader h2 {
+    margin: 0;
+    font-size: var(--fontsize-18);
+    font-weight: 700;
+}
+
+.sectionHeader span {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background-color: var(--secondary);
+    font-size: var(--fontsize-12);
+    font-weight: 600;
+}
+
+.weekBar {
+    display: flex;
+    gap: 10px;
+}
+
+.weekBar button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 999px;
+    background-color: transparent;
+    color: #888;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.weekBar .weekActive {
+    background-color: black;
+    color: white;
+}
+
+.lockIcon {
+    width: 14px;
+}
+
+.insightCard,
+.lockedCard {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-sizing: border-box;
+    padding: 15px;
+    border-radius: 12px;
+    background-color: white;
+}
+
+.insightCard h3,
+.lockedCard h3 {
+    margin: 0;
+    font-size: var(--fontsize-14);
+    font-weight: 700;
+}
+
+.insightCard p,
+.lockedCard p {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    line-height: 1.5;
+    color: #555;
+}
+
+.insightCard span {
+    font-size: var(--fontsize-12);
+    font-weight: 600;
+    color: var(--earning);
+}
+
+.lockedCard {
+    text-align: center;
+    align-items: center;
+    padding: 30px 20px;
+}
+
+/* Post cards */
+.postList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.postCard {
+    border-radius: 12px;
+    background-color: white;
+    overflow: hidden;
+}
+
+.postHeader {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 15px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+.postDate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 48px;
+    padding: 8px 0;
+    border-radius: 12px;
+    background-color: var(--primary);
+    color: white;
+}
+
+.postDate span {
+    font-size: var(--fontsize-13);
+    font-weight: 500;
+    color: #fff;
+}
+
+.postDate h3 {
+    margin: 0;
+    font-size: var(--fontsize-18);
+    font-weight: 700;
+    color: var(--secondary);
+}
+
+.postInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.postInfo h3 {
+    margin: 0;
+    font-size: var(--fontsize-16);
+    font-weight: 700;
+}
+
+.platformRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.platform {
+    padding: 3px 10px;
+    border-radius: 999px;
+    color: white;
+    font-size: var(--fontsize-12);
+    font-weight: 600;
+}
+
+.instagram {
+    background-color: #c13584;
+}
+
+.facebook {
+    background-color: #1877f2;
+}
+
+.youtube {
+    background-color: #e00000;
+}
+
+.tiktok {
+    background-color: #111;
+}
+
+.chevron {
+    width: 20px;
+    color: #888;
+    transition: transform 0.2s;
+}
+
+.chevronOpen {
+    transform: rotate(180deg);
+}
+
+/* Post body */
+.postBody {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-sizing: border-box;
+    padding: 0 15px 15px;
+}
+
+.bodyBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 12px;
+    background-color: #f5f7f6;
+}
+
+.bodyBlock h4 {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #666;
+}
+
+.bodyBlock p {
+    margin: 0;
+    font-size: var(--fontsize-14);
+    line-height: 1.5;
+}
+
+.captionCta {
+    font-weight: 600;
+}
+
+.hashtagRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.hashtagRow span {
+    font-size: var(--fontsize-13);
+    color: #2563eb;
+}
+
+.copyButton {
+    width: fit-content;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 999px;
+    background-color: black;
+    color: white;
+    font-size: var(--fontsize-12);
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.videoMeta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.videoMeta p {
+    font-size: var(--fontsize-14);
+    color: #777;
+}
+
+.videoMeta span {
+    font-size: var(--fontsize-14);
+}
+
+.durationBadge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background-color: var(--secondary);
+    font-weight: 600;
+}
+
+.bodyBlock .shotTitle {
+    font-size: var(--fontsize-12);
+    color: #777;
+}
+
+.shotList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.shotItem {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px;
+    border-radius: 12px;
+    background-color: white;
+}
+
+.shotItem b {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background-color: var(--primary);
+    color: white;
+    font-size: var(--fontsize-12);
+}
+
+.shotItem span {
+    font-size: var(--fontsize-12);
+    font-weight: 700;
+    color: var(--earning);
+}
+
+.shotItem p {
+    margin: 2px 0 0;
+    font-size: var(--fontsize-13);
+}
+
+/* ── Section 3: Feedback ── */
+.feedbackWrapper {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 20px 15px 30px;
+}
+
+.feedbackCard,
+.doneCard {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-sizing: border-box;
+    padding: 15px;
+    border-radius: 12px;
+    background-color: white;
+}
+
+.feedbackCard h3,
+.doneCard h3 {
+    margin: 0;
+    font-size: var(--fontsize-16);
+    font-weight: 700;
+}
+
+.feedbackCard>p,
+.doneCard p {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    color: #555;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field label {
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+}
+
+.input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    background-color: #f5f7f6;
+    font-family: inherit;
+    font-size: var(--fontsize-14);
+    resize: none;
+}
+
+.ratingRow {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.ratingRow button {
+    padding: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 999px;
+    background-color: transparent;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+}
+
+.ratingRow .ratingActive {
+    border-color: black;
+    background-color: black;
+    color: white;
+}
+
+.submitButton {
+    padding: 13px;
+    border: none;
+    border-radius: 999px;
+    background-color: var(--secondary);
+    font-size: var(--fontsize-14);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.submitButton:disabled {
+    opacity: 0.4;
+    cursor: default;
+}

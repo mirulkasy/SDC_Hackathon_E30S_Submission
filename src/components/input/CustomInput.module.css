@@ -393,7 +393,6 @@
 }
 
 .errorText {
-    min-height: 1.2em;
     margin: 0;
     font-size: var(--fontsize-12);
     font-weight: 500;

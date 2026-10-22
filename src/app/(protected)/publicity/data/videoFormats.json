@@ -1,0 +1,98 @@
+[
+  {
+    "postId": "w1-p1",
+    "context": "Show the slow-cooking of sambal so viewers see the effort behind the taste.",
+    "duration": "15 seconds",
+    "shots": [
+      { "no": 1, "time": "0–3s", "description": "Close-up of chillies sizzling in the wok, with sound on." },
+      { "no": 2, "time": "3–7s", "description": "You stirring the sambal, wide shot of the kitchen behind." },
+      { "no": 3, "time": "7–11s", "description": "Spoon lifting thick sambal, slow motion." },
+      { "no": 4, "time": "11–15s", "description": "Plated nasi lemak with text: \"Order before 9 PM\"." }
+    ]
+  },
+  {
+    "postId": "w1-p2",
+    "context": "Make the lunch set look irresistible and state the price clearly.",
+    "duration": "20 seconds",
+    "shots": [
+      { "no": 1, "time": "0–4s", "description": "Top-down shot of the empty tray, set items drop in one by one." },
+      { "no": 2, "time": "4–10s", "description": "Close-up of crispy chicken being placed, then the egg." },
+      { "no": 3, "time": "10–15s", "description": "Pour sambal over the rice." },
+      { "no": 4, "time": "15–20s", "description": "Price text \"RM 12.90 – today only\" over the finished set." }
+    ]
+  },
+  {
+    "postId": "w1-p3",
+    "context": "Give a behind-the-scenes look at the morning rush to build a personal connection.",
+    "duration": "45 seconds",
+    "shots": [
+      { "no": 1, "time": "0–8s", "description": "Time-lapse of you opening the stall at sunrise." },
+      { "no": 2, "time": "8–20s", "description": "Steaming rice and coconut milk being prepared." },
+      { "no": 3, "time": "20–35s", "description": "Customers lining up, quick cuts of orders being packed." },
+      { "no": 4, "time": "35–45s", "description": "You speaking to camera: \"Subscribe for weekly recipes\"." }
+    ]
+  },
+
+  {
+    "postId": "w2-p1",
+    "context": "Capture an honest first-bite reaction to the new Sambal Udang dish.",
+    "duration": "12 seconds",
+    "shots": [
+      { "no": 1, "time": "0–3s", "description": "Customer looks at the plate, you say \"Try this!\"." },
+      { "no": 2, "time": "3–8s", "description": "Close-up of the first bite and their reaction." },
+      { "no": 3, "time": "8–12s", "description": "Thumbs-up and text overlay: \"Use code TASTE10\"." }
+    ]
+  },
+  {
+    "postId": "w2-p2",
+    "context": "Show the Friday bundle so office workers can picture sharing it.",
+    "duration": "20 seconds",
+    "shots": [
+      { "no": 1, "time": "0–5s", "description": "Two sets and two drinks placed side by side on a table." },
+      { "no": 2, "time": "5–12s", "description": "Two people unwrapping and digging in at an office desk." },
+      { "no": 3, "time": "12–20s", "description": "Price card \"RM 28 bundle\" and booking deadline text." }
+    ]
+  },
+  {
+    "postId": "w2-p3",
+    "context": "Teach one simple recipe so viewers return for more.",
+    "duration": "40 seconds",
+    "shots": [
+      { "no": 1, "time": "0–5s", "description": "Finished coconut rice as a hook with text \"3 steps\"." },
+      { "no": 2, "time": "5–15s", "description": "Step 1: rinse rice and add coconut milk." },
+      { "no": 3, "time": "15–28s", "description": "Step 2: add pandan and salt, start the cooker." },
+      { "no": 4, "time": "28–40s", "description": "Step 3: fluff the rice, then ask viewers to subscribe." }
+    ]
+  },
+
+  {
+    "postId": "w3-p1",
+    "context": "Show care in packing to build trust in your delivery quality.",
+    "duration": "15 seconds",
+    "shots": [
+      { "no": 1, "time": "0–4s", "description": "Order slip printed, you read the name aloud." },
+      { "no": 2, "time": "4–10s", "description": "Top-down shot of the box being packed and checked." },
+      { "no": 3, "time": "10–15s", "description": "Box sealed with a sticker, text \"Order now, link in bio\"." }
+    ]
+  },
+  {
+    "postId": "w3-p2",
+    "context": "Let a real customer explain why they keep coming back.",
+    "duration": "25 seconds",
+    "shots": [
+      { "no": 1, "time": "0–5s", "description": "Customer at the counter introducing themselves." },
+      { "no": 2, "time": "5–18s", "description": "Customer answering \"What's your favourite set and why?\"." },
+      { "no": 3, "time": "18–25s", "description": "Shot of them eating, with their name and quote as text." }
+    ]
+  },
+  {
+    "postId": "w3-p3",
+    "context": "Introduce yourself and answer viewer questions to deepen loyalty.",
+    "duration": "45 seconds",
+    "shots": [
+      { "no": 1, "time": "0–7s", "description": "You at the kitchen counter introducing the Q&A." },
+      { "no": 2, "time": "7–35s", "description": "Answer 2–3 questions, cutting to b-roll of cooking between answers." },
+      { "no": 3, "time": "35–45s", "description": "Ask viewers to comment their next question." }
+    ]
+  }
+]

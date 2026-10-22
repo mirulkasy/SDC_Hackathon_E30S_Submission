@@ -1,0 +1,150 @@
+.salesPage {
+    overflow: hidden;
+}
+
+.salesLogo {
+    margin-top: 40px;
+    transform: translateX(-10%);
+}
+
+.salesWrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.salesWrapper h1 {
+    padding: 10px 0;
+    font-size: var(--fontsize-20);
+    width: 80%;
+    font-weight: 700;
+}
+
+.nextBtn {
+    z-index: 99;
+    position: absolute;
+    bottom: 20px;
+    right: 30px;
+
+    margin: 15px 0;
+    width: fit-content;
+    padding: 10px 20px;
+    background-color: white;
+    color: var(--primary);
+    font-size: var(--fontsize-16);
+    font-weight: 700;
+    border-radius: 10px;
+}
+
+.biscoach {
+    z-index: 10;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    transform: translate(-20%, 0) scale(1.2);
+}
+
+.wave {
+    opacity: .9;
+    position: absolute;
+    width: auto;
+    height: 150px;
+    left: 0;
+    bottom: 0;
+}
+
+.hint {
+    font-size: var(--fontsize-14);
+    font-weight: 500;
+    font-style: italic;
+    color: #666;
+}
+
+.sliderBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 40px;
+}
+
+.sliderValue {
+    text-align: center;
+    font-size: var(--fontsize-subheader);
+    font-weight: 700;
+    color: #111;
+}
+
+input.slider[type="range"] {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* Base Range Input */
+.slider {
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 24px;
+    margin: 0;
+    background: transparent;
+    outline: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    --thumb: 24px;
+    --fill: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--ratio, 0));
+}
+
+/* Tracks (fill follows the thumb's center) */
+.slider::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(to right,
+            var(--primary, #0070f3) var(--fill),
+            #e5e5e5 var(--fill));
+}
+
+.slider::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(to right,
+            var(--primary, #0070f3) var(--fill),
+            #e5e5e5 var(--fill));
+}
+
+/* Thumbs */
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    margin-top: -7px;
+    /* (6px track - 20px thumb) / 2 */
+    border-radius: 50%;
+    background: white;
+    border: 6px solid var(--primary, #0070f3);
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 4px solid var(--primary, #0070f3);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.sliderLabels {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--fontsize-12, 12px);
+    color: #888;
+}

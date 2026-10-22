@@ -1,0 +1,39 @@
+[
+  {
+    "label": "5 – 11 Oct",
+    "days": [
+      { "day": "Mon", "views": 820 },
+      { "day": "Tue", "views": 1040 },
+      { "day": "Wed", "views": 960 },
+      { "day": "Thu", "views": 1310 },
+      { "day": "Fri", "views": 1500 },
+      { "day": "Sat", "views": 2100 },
+      { "day": "Sun", "views": 1780 }
+    ]
+  },
+  {
+    "label": "12 – 18 Oct",
+    "days": [
+      { "day": "Mon", "views": 900 },
+      { "day": "Tue", "views": 1100 },
+      { "day": "Wed", "views": 1250 },
+      { "day": "Thu", "views": 1420 },
+      { "day": "Fri", "views": 1680 },
+      { "day": "Sat", "views": 2400 },
+      { "day": "Sun", "views": 2050 }
+    ]
+  },
+  {
+    "label": "19 – 25 Oct",
+    "current": true,
+    "days": [
+      { "day": "Mon", "views": 1050 },
+      { "day": "Tue", "views": 1320 },
+      { "day": "Wed", "views": 1480 },
+      { "day": "Thu", "views": 1610 },
+      { "day": "Fri", "views": null },
+      { "day": "Sat", "views": null },
+      { "day": "Sun", "views": null }
+    ]
+  }
+]

@@ -15,15 +15,34 @@
 }
 
 .navAction {
+    position: relative;
     aspect-ratio: 1/1;
     width: 40px;
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: var(--animation-apple);
 }
 
 .navActionLogo {
     width: 26px;
+}
+
+.navActionActive {
+    transform: translateY(-15%);
+    color: var(--primary);
+    transition: var(--animation-apple);
+}
+
+.navActionActive::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 50%;
+    height: 3px;
+    background-color: var(--primary);
+    transform: translateX(-50%);
 }
 
 .navActionMid {

@@ -1,0 +1,13 @@
+[
+  { "postId": "w1-p1", "text": "The secret is in the sambal 🌶️ Watch how we slow-cook it every single evening, no shortcuts. Tonight's batch is almost gone!", "cta": "Order via DM before 9 PM.", "hashtags": ["#NasiLemak", "#HomemadeSambal", "#KLEats"] },
+  { "postId": "w1-p2", "text": "Lunch sorted! 🍛 Our Nasi Lemak Set comes with crispy chicken, egg and extra sambal for just RM 12.90. Today only.", "cta": "Tap Message to reserve your set.", "hashtags": ["#LunchDeal", "#KLFood", "#NasiLemakSet"] },
+  { "postId": "w1-p3", "text": "Rise and shine ☀️ Here's how our breakfast rush looks from inside the kitchen. Fresh rice, hot coconut milk and a queue that never stops.", "cta": "Subscribe for weekly recipes and promos.", "hashtags": ["#BreakfastMalaysia", "#BehindTheScenes", "#SmallBusiness"] },
+
+  { "postId": "w2-p1", "text": "We asked a first-time customer to try our new Sambal Udang 👀 Her reaction says it all.", "cta": "Get 10% off this week, quote TASTE10.", "hashtags": ["#SambalUdang", "#TasteTest", "#KLEats"] },
+  { "postId": "w2-p2", "text": "Friday lunch bundle 🎉 Any 2 sets + 2 drinks for RM 28. Perfect for you and your office buddy.", "cta": "Message us before 11 AM to book.", "hashtags": ["#FridayLunch", "#OfficeLunch", "#KLFood"] },
+  { "postId": "w2-p3", "text": "Weekend breakfast at home 🍳 Learn our 3-step coconut rice in under a minute.", "cta": "Subscribe and turn on notifications.", "hashtags": ["#CoconutRice", "#EasyRecipe", "#WeekendBreakfast"] },
+
+  { "postId": "w3-p1", "text": "Come with us as we pack your order 📦 Every box is checked twice before it leaves the kitchen.", "cta": "Order now, link in bio.", "hashtags": ["#PackWithMe", "#FoodDelivery", "#SmallBusiness"] },
+  { "postId": "w3-p2", "text": "Don't take our word for it 💬 Hear what our regulars say about their favourite set.", "cta": "Share this with someone who loves good sambal.", "hashtags": ["#CustomerLove", "#Testimonial", "#KLEats"] },
+  { "postId": "w3-p3", "text": "Meet the person behind the sambal 👋 Your questions, answered from our kitchen.", "cta": "Drop your question in the comments.", "hashtags": ["#MeetTheOwner", "#QandA", "#HomemadeSambal"] }
+]

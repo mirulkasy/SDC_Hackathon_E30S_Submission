@@ -1,0 +1,103 @@
+/* ── Page root ── */
+.transactionDetailPage {
+  --earning: #16a34a;
+  --spending: #dc2626;
+  padding: 0 !important;
+  background-color: #f5f7f6;
+  min-height: 100svh;
+}
+
+/* ── Section 1: Top wrapper ── */
+.topWrapper {
+  width: 100svw;
+  padding: 20px;
+  box-sizing: border-box;
+  background-color: var(--primary);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: white;
+}
+.topAction {
+  display: flex;
+  justify-content: space-between;
+}
+.topAction a {
+  color: white;
+}
+.topActionLogo {
+  width: 22px;
+}
+.topWrapper > h1 {
+  margin: 0 0 10px;
+  font-size: var(--fontsize-18);
+  font-weight: 600;
+}
+.topCardWrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px;
+}
+.topCard {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #134f3d;
+  padding: 15px;
+  box-sizing: border-box;
+  border-radius: 12px;
+}
+.topCard h1 {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: var(--fontsize-13);
+  font-weight: 500;
+  color: #ccc;
+  margin: 0;
+}
+.topCard h1 span {
+  font-size: var(--fontsize-18);
+  font-weight: 700;
+}
+.topCard h1 .pricePlus {
+  color: #4ade80;
+}
+.topCard h1 .priceMinus {
+  color: #f87171;
+}
+
+/* ── Section 2: Details ── */
+.detailSection {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 20px 15px 30px;
+}
+.detailList {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 5px 15px;
+  border-radius: 12px;
+  background-color: white;
+}
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 14px 0;
+  border-bottom: 1px solid #eee;
+}
+.detailRow:last-child {
+  border-bottom: none;
+}
+.detailRow p {
+  margin: 0;
+  font-size: var(--fontsize-13);
+  color: #777;
+}
+.detailRow span {
+  font-size: var(--fontsize-14);
+  font-weight: 600;
+  text-align: right;
+}

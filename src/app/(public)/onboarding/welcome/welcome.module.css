@@ -1,0 +1,81 @@
+.welcomePage {
+    overflow: hidden;
+}
+
+.welcomeLogo {
+    margin-top: 60px;
+    transform: translateX(-10%);
+}
+
+.organizationWrapper {
+    margin: 20px 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.organizationWrapper h1 {
+    padding: 10px 0;
+    font-size: var(--fontsize-20);
+    width: 80%;
+    font-weight: 700;
+}
+
+.organizationForm {
+    display: flex;
+    flex-direction: column;
+}
+
+.organizationForm p {
+    font-size: var(--fontsize-14);
+    font-weight: 500;
+    font-style: italic;
+    color: #666;
+}
+
+.joinBtn {
+    margin: 15px 0;
+    width: fit-content;
+    padding: 10px 20px;
+    background-color: var(--primary);
+    color: white;
+    font-size: var(--fontsize-14);
+    font-weight: 500;
+    border-radius: 999px;
+}
+
+.skipBtn {
+    z-index: 99;
+    position: absolute;
+    bottom: 20px;
+    right: 30px;
+        
+    margin: 15px 0;
+    width: fit-content;
+    padding: 10px 20px;
+    background-color: white;
+    color: var(--primary);
+    font-size: var(--fontsize-16);
+    font-weight: 700;
+    border-radius: 10px;
+}
+
+
+
+.biscoach {
+    z-index: 10;
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translate(-50%, 0) scale(1.3);
+}
+
+.wave {
+    opacity: .9;
+    position: absolute;
+    width: auto;
+    height: 150px;
+    left: 0;
+    bottom: 0;
+}

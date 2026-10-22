@@ -1,0 +1,35 @@
+[
+  {
+    "week": 1,
+    "label": "Week 1",
+    "range": "26 Oct – 1 Nov",
+    "insight": "First plan is based on typical peak times for food businesses. Send feedback after this week and the AI will tune Week 2.",
+    "posts": [
+      { "id": "w1-p1", "date": "2026-10-27", "day": "Tue", "time": "7:30 PM", "platforms": ["instagram", "tiktok"], "reason": "Dinner-time scrolling is the busiest window for food content." },
+      { "id": "w1-p2", "date": "2026-10-29", "day": "Thu", "time": "12:30 PM", "platforms": ["facebook"], "reason": "Office crowd checks Facebook on lunch break and likes deals." },
+      { "id": "w1-p3", "date": "2026-10-31", "day": "Sat", "time": "9:00 AM", "platforms": ["youtube"], "reason": "Weekend mornings have longer watch time on YouTube." }
+    ]
+  },
+  {
+    "week": 2,
+    "label": "Week 2",
+    "range": "2 – 8 Nov",
+    "insight": "Learned from Week 1: evening posts on Instagram and TikTok got the most attention, so they move to 8:00 PM and add a taste-test video. Facebook lunch deals stay but shift to Friday.",
+    "posts": [
+      { "id": "w2-p1", "date": "2026-11-04", "day": "Wed", "time": "8:00 PM", "platforms": ["instagram", "tiktok"], "reason": "Your best views came after 7 PM, so we push it 30 minutes later." },
+      { "id": "w2-p2", "date": "2026-11-06", "day": "Fri", "time": "12:30 PM", "platforms": ["facebook"], "reason": "Friday lunch plans are made early, so deals perform better." },
+      { "id": "w2-p3", "date": "2026-11-08", "day": "Sun", "time": "9:00 AM", "platforms": ["youtube", "facebook"], "reason": "Sunday breakfast content keeps viewers longer than weekday posts." }
+    ]
+  },
+  {
+    "week": 3,
+    "label": "Week 3",
+    "range": "9 – 15 Nov",
+    "insight": "Learned from Week 2: how-to videos kept viewers watching longest, so Week 3 adds a customer testimonial and a live Q&A to build trust.",
+    "posts": [
+      { "id": "w3-p1", "date": "2026-11-10", "day": "Tue", "time": "8:00 PM", "platforms": ["instagram", "tiktok"], "reason": "Tuesday evenings are your most consistent high-view slot." },
+      { "id": "w3-p2", "date": "2026-11-12", "day": "Thu", "time": "12:30 PM", "platforms": ["facebook", "instagram"], "reason": "Testimonials get shared more during lunch-hour browsing." },
+      { "id": "w3-p3", "date": "2026-11-14", "day": "Sat", "time": "9:00 AM", "platforms": ["youtube"], "reason": "Weekend mornings suit longer, personal videos." }
+    ]
+  }
+]

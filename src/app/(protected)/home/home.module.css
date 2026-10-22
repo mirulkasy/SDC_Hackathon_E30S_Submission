@@ -1,0 +1,131 @@
+.homePage {
+    padding: 0 !important;
+    background-color: #f5f7f6;
+}
+
+.topWrapper {
+    width: 100svw;
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: var(--primary);
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    color: white;
+}
+
+.topAction {
+    display: flex;
+    justify-content: space-between;
+}
+
+.topActionLogo {
+    width: 22px;
+}
+
+.topWrapper h1 {
+    margin: 0 0 10px;
+    font-size: var(--fontsize-18);
+    font-weight: 600;
+}
+
+.topCardWrapper {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+}
+
+.topCard {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background-color: #134f3d;
+    padding: 15px;
+    box-sizing: border-box;
+    border-radius: 12px;
+}
+
+.topCard h1 {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    font-size: var(--fontsize-13);
+    font-weight: 500;
+    color: #ccc;
+    margin: 0;
+}
+
+.topCard h1 span {
+    color: var(--secondary);
+    font-size: var(--fontsize-18);
+    font-weight: 700;
+}
+
+.appList {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 30px 15px;
+    display: grid;
+    grid-template-columns: repeat(4, 70px);
+    justify-content: center;
+    gap: 15px;
+}
+
+.appButton {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1/1;
+    gap: 5px;
+}
+
+.appButton p {
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+}
+
+.aidWrapper {
+    box-sizing: border-box;
+    padding: 0 15px;
+    width: 100%;
+}
+
+.aidBanner {
+    position: relative;
+    box-sizing: border-box;
+    padding: 15px;
+    border-radius: 12px;
+    background-color: var(--secondary);
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    
+}
+
+.aidBanner h1 {
+    width: 60%;
+    font-size: var(--fontsize-16);
+}
+
+.aidBanner div {
+    width: fit-content;
+    background-color: black;
+    color: white;
+    border-radius: 999px;
+    padding: 8px 13px;
+    font-weight: 500;
+    font-size: var(--fontsize-12);
+}
+
+.aidBanner img {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-20%) scale(1.5);
+}

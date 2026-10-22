@@ -1,0 +1,27 @@
+.onboardingPage {
+    overflow: hidden;
+}
+
+.header {
+    box-sizing: border-box;
+    padding: 30px 0px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.continueBtn {
+    padding: 10px 20px;
+    background-color: var(--primary);
+    color: white;
+    font-size: var(--fontsize-14);
+    font-weight: 500;
+    border-radius: 999px;
+}
+
+.biscoachImg {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    transform: translate(20%, 10%) scale(1.2);
+}

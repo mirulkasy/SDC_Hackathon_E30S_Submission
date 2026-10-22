@@ -22,8 +22,8 @@
 
   --boxshadow: 0px 3px 3px #00000020;
 
-  --primary: #192f59;
-  --secondary: #BB0306;
+  --primary: #0b3d2e;
+  --secondary: #ffd23f;
   --selection: #FEF08A;
   --light: #fff;
   --dark: #333;
@@ -93,6 +93,7 @@ body {
 main {
   position: relative;
   width: 100%;
+  min-height: 100dvh;
 
   padding: 0 20px;
   box-sizing: border-box;

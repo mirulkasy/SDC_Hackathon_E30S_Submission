@@ -1,0 +1,263 @@
+/* ── Page root ── */
+.transactionPage {
+    --earning: #16a34a;
+    --spending: #dc2626;
+    padding: 0 0 100px !important;
+    background-color: #f5f7f6;
+    min-height: 100svh;
+}
+
+.topWrapper {
+    box-sizing: border-box;
+    padding: 25px 20px;
+    width: 100svw;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--primary);
+}
+
+.topWrapper h1 {
+    color: white;
+    font-size: var(--fontsize-18);
+}
+
+.stickyWrapper {
+    z-index: 999;
+    position: sticky;
+    top: 0;
+    will-change: transform;
+}
+
+/* ── Section 1: Month filter ── */
+.monthWrapper {
+    background-color: #f5f7f6;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 20px 15px 0;
+}
+
+.monthBar {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.monthBar::-webkit-scrollbar {
+    display: none;
+}
+
+.monthBar button {
+    flex-shrink: 0;
+    padding: 0 5px 6px;
+    border: none;
+    border-bottom: 5px solid transparent;
+    background-color: transparent;
+    color: #888;
+    font-size: var(--fontsize-14);
+    font-weight: 500;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+
+.monthBar .monthActive {
+    color: black;
+    border-bottom-color: black;
+    font-weight: 700;
+}
+
+/* ── Section 2: Tab bar ── */
+.tabWrapper {
+    background-color: #f5f7f6;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 20px 15px 15px;
+}
+
+.tabBar {
+    display: flex;
+    gap: 10px;
+}
+
+.tabBar button {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 999px;
+    background-color: transparent;
+    color: #888;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.tabBar .tabActive {
+    background-color: black;
+    color: white;
+}
+
+/* ── Section 3: Chart + categories ── */
+.chartWrapper {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 25px 15px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.chartCard {
+    position: relative;
+    width: 260px;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.chartSvg {
+    display: block;
+    width: 100%;
+}
+
+.chartCenter {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    pointer-events: none;
+    text-align: center;
+}
+
+.chartCenter p {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    color: #555;
+}
+
+.chartCenter h2 {
+    margin: 0;
+    font-size: var(--fontsize-18);
+    font-weight: 700;
+}
+
+.categoryList {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    scrollbar-width: none;
+}
+
+.categoryList::-webkit-scrollbar {
+    display: none;
+}
+
+.categoryItem {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 100px;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+.categoryItem p {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+}
+
+.categoryItem span {
+    font-size: var(--fontsize-12);
+    font-weight: 600;
+}
+
+.categoryIcon {
+    width: 40px;
+    height: 40px;
+}
+
+.categoryActive {
+    background-color: white;
+    border-color: black;
+}
+
+/* ── Section 4: List ── */
+.listSection {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 20px 15px 30px;
+}
+
+.listGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.listItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    box-sizing: border-box;
+    padding: 15px;
+    border-radius: 12px;
+    background-color: white;
+    color: inherit;
+    text-decoration: none;
+}
+
+.listInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.listInfo h2 {
+    margin: 0;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+}
+
+.listInfo p {
+    margin: 0;
+    font-size: var(--fontsize-12);
+    color: #777;
+}
+
+.pricePlus,
+.priceMinus {
+    font-size: var(--fontsize-14);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.pricePlus {
+    color: var(--earning);
+}
+
+.priceMinus {
+    color: var(--spending);
+}
+
+.categoryItem .pricePlus,
+.categoryItem .priceMinus {
+    font-size: var(--fontsize-12);
+}
+
+.emptyText {
+    text-align: center;
+    font-size: var(--fontsize-14);
+    color: #777;
+}
