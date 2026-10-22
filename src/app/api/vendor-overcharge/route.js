@@ -1,13 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NextResponse } from "next/server";
 
-// =====================================================
-// 1. SETTINGS
-// =====================================================
+
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Tried in order. If a model is busy (503) we retry it, then move to the next one.
+
 const MODELS = [
   { name: "gemini-3.5-flash", tries: 3 },
   { name: "gemini-2.5-flash", tries: 2 },
@@ -21,9 +19,7 @@ const DEFAULT_CURRENCY = "MYR"; // used only when a document shows no currency
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// =====================================================
-// 2. WHAT WE ASK THE AI TO DO (read only, no judging)
-// =====================================================
+
 
 const responseSchema = {
   type: Type.OBJECT,
@@ -164,9 +160,7 @@ async function generate(contents) {
   throw busyError || lastError; // show "busy" if the service was busy
 }
 
-// =====================================================
-// 3. SMALL HELPERS
-// =====================================================
+
 
 const norm = (s) =>
   String(s ?? "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
@@ -182,7 +176,7 @@ const tolerance = (x) => Math.max(0.05, Math.abs(x) * 0.01); // "close enough" f
 const sevFromPct = (pct) => (pct >= 25 ? "high" : "medium");
 const SEV_ORDER = { high: 0, medium: 1, low: 2 };
 
-// Flags that explain the gap between "billed" and "what the PO allows"
+
 const RECON_TYPES = new Set([
   "math_error",
   "above_po_price",
@@ -195,7 +189,7 @@ const RECON_TYPES = new Set([
   "tax_on_extras",
 ]);
 
-// Turns the AI's answer for one document into clean numbers
+
 function cleanDoc(d) {
   const lines = (Array.isArray(d.line_items) ? d.line_items : []).map((li) => {
     const qty = num(li.quantity);
@@ -212,8 +206,8 @@ function cleanDoc(d) {
       qty,
       unit,
       total,
-      price: unit ?? (qty ? total / qty : null), // price for ONE unit
-      agreed: null, // filled in when we find the matching PO line
+      price: unit ?? (qty ? total / qty : null), 
+      agreed: null, 
     };
   });
 
@@ -248,24 +242,21 @@ function cleanDoc(d) {
   };
 }
 
-// Same product? Match by SKU first, then by name.
+
 function sameItem(a, b) {
   if (a.sku && b.sku && norm(a.sku) === norm(b.sku)) return true;
   if (a.key && a.key === b.key) return true;
   return a.key.length >= 6 && b.key.length >= 6 && (a.key.includes(b.key) || b.key.includes(a.key));
 }
 
-// Does a contract rule talk about this fee line?
+
 function ruleMatches(rule, li) {
   const text = norm(`${li.name} ${li.sku}`);
   return rule.keywords.some((k) => text.includes(k));
 }
 
-// =====================================================
-// 4. THE CHECKS (each one is small and separate)
-// =====================================================
 
-// Check A: things we can check on the invoice alone (no PO needed)
+
 function checkInsideInvoice(inv, add, money) {
   // quantity × price must equal the line total
   for (const li of inv.lines) {
@@ -283,7 +274,7 @@ function checkInsideInvoice(inv, add, money) {
     });
   }
 
-  // the same line twice
+  
   const seen = new Set();
   for (const li of inv.lines) {
     if (li.kind === "discount") continue;
@@ -299,7 +290,7 @@ function checkInsideInvoice(inv, add, money) {
     } else seen.add(k);
   }
 
-  // subtotal and total must add up
+  
   const lineSum = inv.lines.reduce((s, li) => s + li.total, 0);
   const shipping = inv.shipping ?? 0;
   const base = inv.subtotal ?? lineSum;
@@ -337,13 +328,12 @@ function checkInsideInvoice(inv, add, money) {
   }
 }
 
-// Check B: compare the invoice with the purchase order and contract rules
-// Returns the "how the numbers add up" box (or null if the PO has no total)
+
 function checkAgainstPO(inv, base, findings, add, money) {
   const hasPOLines = base.lines.length > 0;
-  let allowed = 0; // money the contract still allows (for example a fee up to its limit)
+  let allowed = 0; 
 
-  // B1. Every invoice line: is it on the PO, at the right price and quantity?
+  
   for (const li of inv.lines) {
     if (li.kind === "discount") continue;
 
@@ -377,7 +367,7 @@ function checkAgainstPO(inv, base, findings, add, money) {
       continue;
     }
 
-    // Not on the PO. If it is a fee, the contract rules decide.
+    
     if (li.kind === "fee") {
       const rule = base.rules.find((r) => (r.type === "no_fee" || r.type === "fee_cap") && ruleMatches(r, li));
 
@@ -423,7 +413,7 @@ function checkAgainstPO(inv, base, findings, add, money) {
     }
   }
 
-  // B2. Discount: the invoice must give the discount the PO or contract promised
+  
   const poDiscount = base.lines.filter((l) => l.kind === "discount").reduce((s, l) => s + Math.abs(l.total), 0);
   const invDiscount =
     inv.lines.filter((l) => l.kind === "discount").reduce((s, l) => s + Math.abs(l.total), 0) + (inv.discount ?? 0);
@@ -448,7 +438,7 @@ function checkAgainstPO(inv, base, findings, add, money) {
     });
   }
 
-  // B3. Freight
+  
   if (base.shipping !== null && inv.shipping !== null && inv.shipping > base.shipping + tolerance(base.shipping)) {
     add({
       type: "freight_above_agreed",
@@ -458,7 +448,7 @@ function checkAgainstPO(inv, base, findings, add, money) {
     });
   }
 
-  // B4. Tax: more overcharge means more tax
+  
   if (base.tax !== null && inv.tax !== null) {
     if (inv.taxRate !== null && base.taxRate !== null && Math.abs(inv.taxRate - base.taxRate) > 0.01) {
       add({
@@ -482,7 +472,7 @@ function checkAgainstPO(inv, base, findings, add, money) {
     }
   }
 
-  // B5. "How the numbers add up"
+  
   if (base.total === null || inv.total === null) return null;
   const difference = r2(inv.total - base.total);
   const explained = r2(
@@ -500,7 +490,7 @@ function checkAgainstPO(inv, base, findings, add, money) {
   };
 }
 
-// Check C: compare with prices you saved from earlier invoices
+
 function checkAgainstHistory(inv, docKey, history, findings, add, money) {
   const tol = PRICE_TOLERANCE_PCT / 100;
   const flaggedByPO = new Set(findings.filter((f) => f.type === "above_po_price").map((f) => f.line));
@@ -554,7 +544,7 @@ function checkAgainstHistory(inv, docKey, history, findings, add, money) {
   }
 }
 
-// Check D: the same invoice twice
+
 function checkDuplicateInvoice(inv, docKey, history, seenInvoices, add) {
   const invKey = inv.invoice_number
     ? `${inv.vendorKey}|inv|${norm(inv.invoice_number)}`
@@ -580,14 +570,12 @@ function checkDuplicateInvoice(inv, docKey, history, seenInvoices, add) {
   if (invKey) seenInvoices.add(invKey);
 }
 
-// =====================================================
-// 5. QUESTIONS WE ASK THE USER WHEN SOMETHING IS MISSING
-// =====================================================
+
 
 function buildQuestions(inv, i, hasBaseline) {
   const questions = [];
 
-  // 1) Basic details we could not read
+  
   const missing = [];
   if (!inv.vendor) missing.push({ key: "vendor", label: "Vendor name", type: "text" });
   if (!inv.date) missing.push({ key: "date", label: "Invoice date", type: "date" });
@@ -602,7 +590,7 @@ function buildQuestions(inv, i, hasBaseline) {
     });
   }
 
-  // 2) Products where we cannot work out the price of one unit
+  
   const unclear = inv.lines
     .map((li, j) => ({ li, j }))
     .filter(({ li }) => li.kind === "product" && li.price === null)
@@ -617,7 +605,7 @@ function buildQuestions(inv, i, hasBaseline) {
     });
   }
 
-  // 3) No purchase order: ask for the agreed prices
+  
   if (!hasBaseline) {
     const items = inv.lines
       .filter((li) => li.kind === "product" && li.price !== null)
@@ -637,18 +625,15 @@ function buildQuestions(inv, i, hasBaseline) {
   return questions;
 }
 
-// =====================================================
-// 6. PUT THE CHECKS TOGETHER FOR ONE INVOICE
-// =====================================================
 
-// Which purchase orders / contracts belong to this invoice?
+
 function pickBaselines(inv, baselines) {
   const matches = baselines.filter((b) => {
-    if (!b.po_number && !b.vendorKey) return true; // prices typed by the user: apply to every invoice
+    if (!b.po_number && !b.vendorKey) return true; 
     if (b.po_number && inv.po_reference) return norm(b.po_number) === norm(inv.po_reference);
     return b.vendorKey && b.vendorKey === inv.vendorKey;
   });
-  // Only one PO was uploaded and nothing matched? Assume it belongs to this invoice.
+  
   if (matches.length === 0 && baselines.length === 1) return baselines;
   return matches;
 }
@@ -733,11 +718,7 @@ function analyzeInvoice(inv, i, baselines, history, seenInvoices) {
   };
 }
 
-// =====================================================
-// 7. USER ANSWERS + RUNNING ALL THE CHECKS
-// =====================================================
 
-// Cleans what the page sends back after the user answered our questions
 function cleanAnswers(a) {
   const out = { fields: {}, lines: {}, agreed: [] };
   if (!a || typeof a !== "object") return out;
@@ -759,7 +740,7 @@ function cleanAnswers(a) {
   return out;
 }
 
-// Puts the user's answers into the documents (invoices) and adds typed agreed prices as a mini PO
+
 function applyAnswers(invoices, baselines, answers) {
   invoices.forEach((inv, i) => {
     const f = answers.fields[i];
@@ -837,9 +818,7 @@ function cleanHistory(raw) {
 
 const isCleanDoc = (d) => d && typeof d === "object" && Array.isArray(d.lines) && Array.isArray(d.rules);
 
-// =====================================================
-// 8. THE ROUTE
-// =====================================================
+
 
 export async function POST(req) {
   try {
@@ -905,7 +884,7 @@ export async function POST(req) {
       status,
       notes,
       documents,
-      extracted: docs, // the page sends this back when the user answers questions
+      extracted: docs, 
       baselines: baselines.map((b) => ({
         label: labelOf(b),
         total: b.total,

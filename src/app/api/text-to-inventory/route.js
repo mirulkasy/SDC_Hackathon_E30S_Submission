@@ -8,7 +8,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const clip = (v, n) => String(v ?? "").slice(0, n);
 const isBusy = (err) => err?.status === 503 || err?.status === 429;
 
-// Tries each model, retrying once when Google is busy (503 / 429).
+//Tries each model, retrying once when Google is busy (503 / 429).
 async function callModel(run) {
   let lastError;
   for (const model of MODELS) {
@@ -25,7 +25,7 @@ async function callModel(run) {
   throw lastError;
 }
 
-// ---------------- Chat: stock updates ----------------
+//Chat: stock updates 
 
 const chatSchema = {
   type: Type.OBJECT,
@@ -116,7 +116,7 @@ ${samples}
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
-// Never trust the model's output: keep only valid items and make the status match them.
+//Never trust the model's output: keep only valid items and make the status match them.
 function cleanResult(parsed) {
   const status = ["ok", "needs_clarification", "not_inventory", "info", "business_advice"].includes(parsed?.status)
     ? parsed.status
@@ -142,7 +142,7 @@ function cleanResult(parsed) {
   }
 
   let finalStatus = status;
-  // business advice needs more room than a stock confirmation
+  //business advice needs more room than a stock confirmation
   let reply = clip(parsed?.reply, status === "business_advice" ? 3000 : 1200).trim();
   if (status === "ok" && items.length === 0) {
     finalStatus = "needs_clarification";
@@ -164,7 +164,7 @@ async function handleChat(body) {
     .slice(-12)
     .map((m) => ({ role: m.role, text: clip(m.text, 2000) }));
 
-  // The conversation must start with the user and end with the user.
+  //The conversation must start with the user and end with the user.
   while (messages.length && messages[0].role !== "user") messages.shift();
   if (messages.length === 0 || messages[messages.length - 1].role !== "user") {
     return NextResponse.json({ error: "Please type a message first." }, { status: 400 });
@@ -209,7 +209,7 @@ async function handleChat(body) {
   return NextResponse.json(cleanResult(parsed));
 }
 
-// ---------------- Summary (for chats not used for a day) ----------------
+//Summary (for chats not used for a day) 
 
 const summarySchema = {
   type: Type.OBJECT,
@@ -270,7 +270,7 @@ ${lines.join("\n")}`;
   return NextResponse.json({ summary, styleNotes: clip(parsed.style_notes, 500).trim() });
 }
 
-// ---------------- Route ----------------
+//Route 
 
 export async function POST(req) {
   try {

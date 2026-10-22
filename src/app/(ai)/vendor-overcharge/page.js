@@ -7,7 +7,7 @@ const MAX_PDF_BYTES = 8 * 1024 * 1024;
 const HISTORY_KEY = "vendor-price-history";
 const MAX_HISTORY = 500;
 
-// Short, plain names for each kind of flag
+
 const TYPE_LABEL = {
   above_po_price: "Price higher than agreed",
   over_quantity: "More than ordered",
@@ -47,7 +47,7 @@ function readAsDataURL(file) {
   });
 }
 
-// Shrinks photos before upload: faster upload and faster AI response.
+
 async function fileToPayload(file) {
   if (file.type === "application/pdf") {
     if (file.size > MAX_PDF_BYTES) throw new Error(`${file.name} is too large (PDF limit is 8 MB).`);
@@ -72,7 +72,7 @@ async function fileToPayload(file) {
   return { name: file.name, mimeType: "image/jpeg", data: dataUrl.split(",")[1], preview: dataUrl };
 }
 
-// Builds the polite message to send to the vendor
+
 function buildMessage(d, active) {
   const cur = d.currency;
   const over = active.filter((f) => f.kind === "overcharge");
@@ -95,7 +95,7 @@ export default function VendorOverchargePage() {
   const [files, setFiles] = useState([]);
   const [docs, setDocs] = useState([]);
   const [baselines, setBaselines] = useState([]);
-  const [extracted, setExtracted] = useState(null); // what the AI read (sent back with the answers)
+  const [extracted, setExtracted] = useState(null);
   const [answers, setAnswers] = useState({ fields: {}, lines: {}, agreed: {} });
   const [meta, setMeta] = useState(null);
   const [dismissed, setDismissed] = useState({});
@@ -177,7 +177,7 @@ export default function VendorOverchargePage() {
     }
   }
 
-  // Round 2: check again with the user's answers (no AI needed, so it is instant)
+  
   async function handleRecheck() {
     if (!extracted) return;
     setRechecking(true);
@@ -204,7 +204,7 @@ export default function VendorOverchargePage() {
     }
   }
 
-  // Small helpers that remember what the user typed in the questions
+  
   function setFieldAnswer(inv, key, value) {
     setAnswers((p) => ({ ...p, fields: { ...p.fields, [inv]: { ...(p.fields[inv] || {}), [key]: value } } }));
   }
