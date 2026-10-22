@@ -1,0 +1,169 @@
+/* ── Page root ── */
+.subInventoryPage {
+  padding: 0 !important;
+  background-color: #f5f7f6;
+  min-height: 100svh;
+}
+ 
+/* ── Section 1: Top wrapper ── */
+.topWrapper {
+  width: 100svw;
+  padding: 20px;
+  box-sizing: border-box;
+  background-color: var(--primary);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: white;
+}
+.topAction {
+  display: flex;
+  justify-content: space-between;
+}
+.topActionLogo {
+  width: 22px;
+}
+.topWrapper h1 {
+  margin: 0 0 10px;
+  font-size: var(--fontsize-18);
+  font-weight: 600;
+}
+
+.productName{
+  text-align: center;
+}
+
+.topCardWrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px;
+}
+.topCard {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #134f3d;
+  padding: 15px;
+  box-sizing: border-box;
+  border-radius: 12px;
+}
+.topCard h1 {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: var(--fontsize-13);
+  font-weight: 500;
+  color: #ccc;
+  margin: 0;
+}
+.topCard h1 span {
+  color: var(--secondary);
+  font-size: var(--fontsize-18);
+  font-weight: 700;
+}
+ 
+/* ── Section 2: Details ── */
+.detailSection {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 30px 15px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.detailSection h2,
+.suggestionSection h2 {
+  margin: 0;
+  font-size: var(--fontsize-18);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.detailList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  box-sizing: border-box;
+  background-color: white;
+  border-radius: 12px;
+}
+.detailRow p {
+  margin: 0;
+  font-size: var(--fontsize-14);
+}
+.detailRow p:first-child {
+  color: #666;
+  font-weight: 500;
+}
+.detailRow p:last-child {
+  font-weight: 700;
+  text-align: right;
+}
+ 
+/* ── Section 3: AI price suggestion ── */
+.suggestionSection {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 15px 15px 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.aiBadge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: black;
+  color: white;
+  font-size: var(--fontsize-12);
+  font-weight: 500;
+}
+.suggestionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.suggestionCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 15px;
+  box-sizing: border-box;
+  background-color: white;
+  border-radius: 12px;
+}
+.suggestionCard h3 {
+  margin: 0;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: var(--secondary);
+  font-size: var(--fontsize-12);
+  font-weight: 600;
+}
+.suggestionRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.suggestionRow p {
+  margin: 0;
+  font-size: var(--fontsize-14);
+}
+.suggestionRow p:first-child {
+  color: #666;
+  font-size: var(--fontsize-13);
+}
+.suggestionRow p:last-child {
+  font-weight: 700;
+}
+.profitValue {
+  color: var(--primary);
+}

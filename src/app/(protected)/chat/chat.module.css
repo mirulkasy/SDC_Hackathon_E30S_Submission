@@ -1,0 +1,160 @@
+.chatPage {
+  padding: 0 !important;
+  min-height: 100svh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f7f6;
+}
+ 
+/* ── Section 1: Top bar ── */
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.topButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+ 
+/* ── Section 2: Mascot & greeting ── */
+.mascotSection {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+.mascot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+.mascot h1 {
+  margin: 0;
+  text-align: center;
+  font-size: var(--fontsize-18);
+  font-weight: 600;
+}
+ 
+/* ── Section 3: Suggestions ── */
+.suggestSection {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 15px 15px;
+}
+.suggestGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.suggestItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background-color: white;
+  text-align: left;
+  cursor: pointer;
+}
+.suggestItem p {
+  margin: 0;
+  font-size: var(--fontsize-14);
+  font-weight: 500;
+}
+ 
+/* ── Section 4: Chat box ── */
+.chatBoxSection {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 15px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.attachmentList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.attachmentChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  background-color: white;
+  font-size: var(--fontsize-12);
+  cursor: pointer;
+}
+.attachmentChip span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+.chatBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  background-color: white;
+}
+.addButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.chatInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: var(--fontsize-14);
+}
+.sendButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background-color: #ccc; /* disabled: grey */
+  cursor: not-allowed;
+  transition: background-color 0.15s;
+}
+.sendButton:not(:disabled) {
+  background-color: var(--secondary); /* ready to send */
+  cursor: pointer;
+}
