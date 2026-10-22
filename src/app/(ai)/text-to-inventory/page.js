@@ -14,6 +14,10 @@ const SUGGESTIONS = [
   "Sold 10 boxes of straws today",
   "Beli 20 kg gula, RM3.20 satu kg",
   "How many cups do I have left?",
+  "How should I price my products to make 30% profit?",
+  "Give me 5 ideas to get more customers on Instagram",
+  "Apa beza sole proprietor dengan Sdn Bhd?",
+  "Write a polite message to remind a customer about late payment",
 ];
 
 // ---------------- Saved data (lives in this browser) ----------------
@@ -358,8 +362,8 @@ export default function TextToInventoryPage() {
     <main style={{ maxWidth: 900, margin: "40px auto", padding: "0 16px", fontFamily: "system-ui, sans-serif", color: "#000" }}>
       <h1>Text to Inventory</h1>
       <p>
-        Just tell me what happened to your stock, the way you would tell a friend. I will turn it into an update for you
-        to check. If I am not sure, I will ask.
+        Your business helper. Tell me what happened to your stock and I will turn it into an update for you to check, or
+        ask me anything about running your business: pricing, marketing, suppliers, hiring, tax and licences, and more.
       </p>
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
@@ -424,10 +428,10 @@ export default function TextToInventoryPage() {
             {empty && (
               <div style={{ margin: "auto", textAlign: "center", maxWidth: 420, fontSize: 15 }}>
                 <p style={{ margin: "0 0 8px" }}>
-                  <strong>Hi! Tell me about your stock.</strong>
+                  <strong>Hi! How can I help your business today?</strong>
                 </p>
                 <p style={{ margin: "0 0 12px", opacity: 0.8 }}>
-                  Stock in, stock out, or a count. English, Bahasa Malaysia or a mix is fine. Try one:
+                  Update your stock, or ask a business question. English, Bahasa Malaysia or a mix is fine. Try one:
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {SUGGESTIONS.map((s) => (
@@ -503,7 +507,7 @@ export default function TextToInventoryPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="Example: received 50 boxes of cups from Ali. Press Enter to send."
+              placeholder="Update stock or ask a business question. Press Enter to send."
               rows={2}
               style={{ flex: 1, padding: 10, fontSize: 16, boxSizing: "border-box", color: "#000", resize: "vertical" }}
             />
@@ -517,7 +521,7 @@ export default function TextToInventoryPage() {
           </div>
           <p style={{ fontSize: 12, opacity: 0.7, margin: "8px 0 0" }}>
             Chats and stock are saved in this browser only. A chat you do not use for a day is shortened into a summary
-            (your stock list is not affected). The AI can make mistakes, so check each update before you apply it.
+            (your stock list is not affected). The AI can make mistakes, so check each update before you apply it. For tax, legal and financial decisions, confirm with the official source or a professional.
           </p>
         </section>
 
