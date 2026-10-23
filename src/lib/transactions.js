@@ -5,9 +5,12 @@ import {
   addDoc,
   serverTimestamp,
   getDoc,
+  getDocs,
   onSnapshot,
   query,
   where,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -55,6 +58,25 @@ function monthRange(monthKey) {
   };
 }
 
+export function monthKeysFromDate(firstDate) {
+  const now = new Date();
+  const start = firstDate ? new Date(firstDate) : now;
+
+  const keys = [];
+
+  for (
+    let d = new Date(start.getFullYear(), start.getMonth(), 1);
+    d <= new Date(now.getFullYear(), now.getMonth(), 1);
+    d.setMonth(d.getMonth() + 1)
+  ) {
+    keys.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+    );
+  }
+
+  return keys;
+}
+
 /** The last `count` "yyyy-MM" keys, oldest first (for the month bar). */
 export function recentMonthKeys(count = 12) {
   const keys = [];
@@ -66,6 +88,27 @@ export function recentMonthKeys(count = 12) {
     );
   }
   return keys;
+}
+
+export async function getEarliestTransactionDate(orgId) {
+  const transactionsRef = collection(
+    db,
+    "organizations",
+    orgId,
+    "transactions",
+  );
+
+  const q = query(transactionsRef, orderBy("date", "asc"), limit(1));
+
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  const data = snapshot.docs[0].data();
+
+  return data.date?.toDate ? data.date.toDate() : new Date(data.date);
 }
 
 /* ------------------------------------------------------------------ */

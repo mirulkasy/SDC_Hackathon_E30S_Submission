@@ -1,38 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./publicity.module.css";
 import NavBar from "@/components/layout/NavBar";
-import weeklyViews from "./data/weeklyViews.json";
-import schedule from "./data/schedule.json";
-import captions from "./data/captions.json";
-import videoFormats from "./data/videoFormats.json";
+import { useAuth } from "@/context/AuthContext";
+import {
+  DAY_KEYS,
+  DAY_SHORT,
+  PLATFORMS,
+  addNextWeek,
+  buildHistory,
+  dateForDay,
+  emptyViews,
+  ensurePublicity,
+  saveDayViews,
+  saveIdeas,
+  savePlanned,
+  subscribePublicity,
+  updateSettings,
+  weekHasViews,
+  weekRange,
+} from "@/lib/publicity";
 
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
+const DAY_FULL = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
 ];
-const PLATFORMS = {
-  instagram: "Instagram",
-  facebook: "Facebook",
-  youtube: "YouTube",
-  tiktok: "TikTok",
+const CONF_LABEL = {
+  untested: "New day",
+  low: "Little data",
+  medium: "Some data",
+  high: "Reliable",
 };
-const RATINGS = [
-  { key: "poor", label: "Poor" },
-  { key: "okay", label: "Okay" },
-  { key: "great", label: "Great" },
-];
 
 // Chart geometry
 const LEFT = 10;
@@ -42,97 +46,341 @@ const PLOT_H = BASE - TOP;
 const SLOT = 40;
 const BAR_W = 24;
 
-const maxScale =
-  Math.ceil(
-    Math.max(...weeklyViews.flatMap((w) => w.days.map((d) => d.views ?? 0))) /
-      500,
-  ) * 500;
+const fmtNum = (n) => Number(n || 0).toLocaleString("en-MY");
+const hasNum = (v) => v !== null && v !== undefined;
+const byDay = (a, b) => DAY_KEYS.indexOf(a.day) - DAY_KEYS.indexOf(b.day);
+const norm = (p) => ({
+  confidence: p.confidence ?? null,
+  day: p.day,
+  reason: p.reason ?? "",
+});
 
-function formatViews(n) {
-  if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`;
-  return `${n}`;
+function isPastDay(startMonday, week, key) {
+  const t = new Date();
+  t.setHours(0, 0, 0, 0);
+  return dateForDay(startMonday, week, key) < t;
 }
 
-function formatPostDate(value) {
-  const [, month, day] = value.split("-");
-  return { day: Number(day), month: MONTHS[Number(month) - 1] };
+function niceMax(max) {
+  const power = Math.pow(10, Math.floor(Math.log10(max || 1)));
+  const n = (max || 1) / power;
+  const nice = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10;
+  return nice * power;
 }
 
-export default function PublicityPage() {
-  const [weekIdx, setWeekIdx] = useState(weeklyViews.length - 1);
-  const [selectedBar, setSelectedBar] = useState(null);
+function platformClass(p) {
+  if (p.includes("Instagram")) return styles.instagram;
+  if (p.includes("YouTube")) return styles.youtube;
+  if (p.includes("Facebook")) return styles.facebook;
+  return styles.tiktok;
+}
 
-  const [activeWeek, setActiveWeek] = useState(1);
-  const [openPost, setOpenPost] = useState(null);
-  const [copiedId, setCopiedId] = useState(null);
+/** Number box that saves when you leave it (or press Enter). */
+function ViewsBox({ value, disabled, onSave }) {
+  const [text, setText] = useState(value ?? "");
+  useEffect(() => setText(value ?? ""), [value]);
 
-  const [feedbackDone, setFeedbackDone] = useState({});
-  const [feedbacks, setFeedbacks] = useState({});
-  const [form, setForm] = useState({ views: "", rating: "", note: "" });
-
-  // ── Chart data ──
-  const viewWeek = weeklyViews[weekIdx];
-  const known = viewWeek.days.filter((d) => d.views !== null);
-  const total = known.reduce((sum, d) => sum + d.views, 0);
-  const previous =
-    weekIdx > 0
-      ? weeklyViews[weekIdx - 1].days
-          .slice(0, known.length)
-          .reduce((sum, d) => sum + d.views, 0)
-      : null;
-  const change = previous
-    ? Math.round(((total - previous) / previous) * 100)
-    : null;
-  const selectedDay = selectedBar !== null ? viewWeek.days[selectedBar] : null;
-
-  const changeViewWeek = (next) => {
-    setWeekIdx(next);
-    setSelectedBar(null);
-  };
-
-  // ── Schedule data ──
-  const week = schedule.find((w) => w.week === activeWeek);
-  const locked = activeWeek > 1 && !feedbackDone[activeWeek - 1];
-  const hasNextWeek = activeWeek < schedule.length;
-  const previousFeedback = feedbacks[activeWeek - 1];
-
-  const isWeekLocked = (n) => n > 1 && !feedbackDone[n - 1];
-
-  const handleCopy = async (post, caption) => {
-    const text = `${caption.text}\n\n${caption.cta}\n${caption.hashtags.join(" ")}`;
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(post.id);
-      setTimeout(() => setCopiedId(null), 1500);
-    } catch {
-      /* clipboard unavailable */
-    }
-  };
-
-  const handleSubmitFeedback = () => {
-    if (!form.views || !form.rating) return;
-    setFeedbacks({ ...feedbacks, [activeWeek]: form });
-    setFeedbackDone({ ...feedbackDone, [activeWeek]: true });
-    setForm({ views: "", rating: "", note: "" });
-    setOpenPost(null);
-    setActiveWeek(activeWeek + 1);
+  const commit = () => {
+    const clean = text === "" ? null : Number(text);
+    if (clean !== (value ?? null)) onSave(text);
   };
 
   return (
+    <input
+      className={styles.input}
+      type="number"
+      min="0"
+      step="1"
+      inputMode="numeric"
+      placeholder="Views"
+      value={text}
+      disabled={disabled}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+    />
+  );
+}
+
+export default function PublicityPage() {
+  const { user, profile } = useAuth();
+  const orgId = profile?.orgId;
+
+  const [data, setData] = useState(null); // { state, weeks }
+  const [tab, setTab] = useState(null); // week being viewed, null = current week
+  const [openDay, setOpenDay] = useState(null);
+  const [selectedBar, setSelectedBar] = useState(null);
+  const [meta, setMeta] = useState(null);
+  const [loadingPlan, setLoadingPlan] = useState(false);
+  const [busyDay, setBusyDay] = useState(null); // a day key, or "all"
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(null);
+  const [topicDraft, setTopicDraft] = useState(null);
+
+  useEffect(() => {
+    if (!orgId || !user) return;
+    ensurePublicity({ orgId, user }).catch((e) =>
+      console.error("ensurePublicity:", e),
+    );
+    return subscribePublicity(orgId, setData);
+  }, [orgId, user]);
+
+  const state = data?.state;
+  const weeks = data?.weeks ?? {};
+  const currentWeek = state?.week;
+  const todayKey = new Date().toDateString();
+
+  // Everything the model may learn from: all weeks up to now, including this week so far
+  const history = useMemo(
+    () => (state ? buildHistory(weeks, state.week) : []),
+    [data], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const historyKey = JSON.stringify(history);
+
+  // doneDays: posted this week (have views). keepDays: those + planned days that already passed.
+  const { doneDays, keepDays } = useMemo(() => {
+    const w = state && weeks[state.week];
+    if (!w) return { doneDays: [], keepDays: [] };
+    const done = DAY_KEYS.filter((k) => hasNum(w.views[k]));
+    const keep = DAY_KEYS.filter(
+      (k) =>
+        hasNum(w.views[k]) ||
+        (w.planned.some((p) => p.day === k) &&
+          isPastDay(state.startMonday, state.week, k)),
+    );
+    return { doneDays: done, keepDays: keep };
+  }, [data, todayKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep this week's plan fresh and saved in Firebase (current week only)
+  useEffect(() => {
+    if (!orgId || !state || !weeks[state.week]) return;
+    const wk = state.week;
+    const w = weeks[wk];
+    const upcoming = DAY_KEYS.filter(
+      (k) => !isPastDay(state.startMonday, wk, k),
+    );
+    const slots = state.postsPerWeek - doneDays.length;
+    let cancelled = false;
+
+    async function run() {
+      setLoadingPlan(true);
+      setError("");
+      try {
+        let fresh = [];
+        if (upcoming.length > 0 && slots > 0) {
+          const res = await fetch("/api/posting-schedule", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              weeks: history,
+              postsPerWeek: state.postsPerWeek,
+              today: upcoming[0],
+              done: doneDays,
+            }),
+          });
+          const json = await res.json();
+          if (cancelled) return;
+          if (!res.ok) {
+            setError(json.error || "Request failed");
+            return;
+          }
+          setMeta({ mode: json.mode, weeksUsed: json.weeksUsed });
+          fresh = json.suggestions.map(norm);
+        }
+
+        const kept = keepDays.map(
+          (k) =>
+            w.planned.find((p) => p.day === k) ?? {
+              day: k,
+              reason: "You logged views for this day.",
+              confidence: null,
+            },
+        );
+        const next = [...kept.map(norm), ...fresh].sort(byDay);
+        const stored = w.planned.map(norm).sort(byDay);
+        if (JSON.stringify(next) !== JSON.stringify(stored))
+          await savePlanned(orgId, wk, next);
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) setError("Could not reach the server.");
+      } finally {
+        if (!cancelled) setLoadingPlan(false);
+      }
+    }
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    orgId,
+    state?.week,
+    state?.postsPerWeek,
+    historyKey,
+    doneDays.join(),
+    keepDays.join(),
+  ]);
+
+  if (!state || !weeks[currentWeek]) {
+    return (
+      <>
+        <main className={styles.publicityPage}>
+          <p style={{ textAlign: "center", padding: 40 }}>Loading...</p>
+        </main>
+        <NavBar />
+      </>
+    );
+  }
+
+  /* ---------- derived ---------- */
+  const viewWeek = tab ?? currentWeek;
+  const isCurrent = viewWeek === currentWeek;
+  const week = weeks[viewWeek] ?? {
+    views: emptyViews(),
+    ideas: [],
+    planned: [],
+  };
+  const weekNumbers = Object.keys(weeks)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const planned = [...week.planned].sort(byDay);
+  const past = (k) => isPastDay(state.startMonday, viewWeek, k);
+
+  const chartTotal = DAY_KEYS.reduce(
+    (s, k) => s + (Number(week.views[k]) || 0),
+    0,
+  );
+  const prevViews = weeks[viewWeek - 1]?.views;
+  const prevTotal = prevViews
+    ? DAY_KEYS.reduce((s, k) => s + (Number(prevViews[k]) || 0), 0)
+    : 0;
+  const change =
+    prevTotal > 0
+      ? Math.round(((chartTotal - prevTotal) / prevTotal) * 100)
+      : null;
+  const maxScale = niceMax(
+    Math.max(100, ...DAY_KEYS.map((k) => Number(week.views[k]) || 0)),
+  );
+  const selectedDay = selectedBar !== null ? DAY_SHORT[selectedBar] : null;
+  const selectedValue =
+    selectedBar !== null
+      ? Number(week.views[DAY_KEYS[selectedBar]]) || 0
+      : chartTotal;
+
+  const needIdeas = planned
+    .filter(
+      (p) =>
+        !hasNum(week.views[p.day]) &&
+        !past(p.day) &&
+        !week.ideas.some((i) => i.day === p.day),
+    )
+    .map((p) => p.day);
+
+  /* ---------- actions ---------- */
+  function switchTab(n) {
+    setTab(n);
+    setOpenDay(null);
+    setSelectedBar(null);
+  }
+
+  async function handleAddWeek() {
+    if (
+      !window.confirm(
+        `Start week ${currentWeek + 1}? Week ${currentWeek} will be locked and can no longer be edited.`,
+      )
+    )
+      return;
+    setAdding(true);
+    setError("");
+    try {
+      await addNextWeek({ orgId, fromWeek: currentWeek });
+      switchTab(null);
+    } catch (err) {
+      setError(
+        err.message === "WEEK_EMPTY"
+          ? "Log views for at least one day before adding the next week."
+          : err.message === "ALREADY_ADDED"
+            ? "Another device already started the next week."
+            : "Couldn't add the week. Please try again.",
+      );
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function generateIdeas(dayKeys) {
+    if (dayKeys.length === 0) return;
+    setBusyDay(dayKeys.length === 1 ? dayKeys[0] : "all");
+    setError("");
+    try {
+      const res = await fetch("/api/video-ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: state.topic,
+          platform: state.platform,
+          days: dayKeys.map((k) => ({
+            day: k,
+            label: DAY_FULL[DAY_KEYS.indexOf(k)],
+            reason: planned.find((p) => p.day === k)?.reason || "",
+          })),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error || "Request failed");
+        return;
+      }
+      const merged = Object.fromEntries(week.ideas.map((i) => [i.day, i]));
+      for (const idea of json.ideas || []) merged[idea.day] = idea;
+      await saveIdeas(orgId, viewWeek, {
+        ideas: Object.values(merged),
+        platform: state.platform,
+      });
+    } catch (e) {
+      console.error(e);
+      setError("Could not reach the server.");
+    } finally {
+      setBusyDay(null);
+    }
+  }
+
+  async function handleCopy(day, idea) {
+    const text =
+      `${idea.caption}\n\n${idea.call_to_action ? `${idea.call_to_action}\n` : ""}${(idea.hashtags || []).join(" ")}`.trim();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(day);
+      setTimeout(() => setCopied(null), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  const insight = !isCurrent
+    ? `Results and plan for week ${viewWeek} (${weekRange(state.startMonday, viewWeek)}).`
+    : meta?.mode === "learned"
+      ? `Learned from ${meta.weeksUsed} week${meta.weeksUsed > 1 ? "s" : ""} of views, including this week so far. The plan updates as you log views.`
+      : "No view history yet, so this is a general starting suggestion. Log the views of each post and the plan gets sharper.";
+
+  /* ---------- UI ---------- */
+  return (
     <>
       <main className={styles.publicityPage}>
-        {/* ── Section 1: Weekly Views Chart ── */}
+        {/* ── Chart + week tabs ── */}
         <section className={styles.topWrapper}>
           <h1>Publicity</h1>
 
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <p>{selectedDay ? `${selectedDay.day} views` : "Total views"}</p>
-              <h2>
-                {(selectedDay ? selectedDay.views : total).toLocaleString(
-                  "en-MY",
-                )}
-              </h2>
+              <p>
+                {selectedDay
+                  ? `${selectedDay} views`
+                  : `Week ${viewWeek} · ${weekRange(state.startMonday, viewWeek)}`}
+              </p>
+              <h2>{fmtNum(selectedValue)}</h2>
               {!selectedDay && change !== null && (
                 <span
                   className={change >= 0 ? styles.changeUp : styles.changeDown}
@@ -157,21 +405,21 @@ export default function PublicityPage() {
                     x={LEFT + 7 * SLOT + 6}
                     y={BASE - f * PLOT_H + 4}
                   >
-                    {formatViews(maxScale * f)}
+                    {fmtNum(maxScale * f)}
                   </text>
                 </g>
               ))}
-
-              {viewWeek.days.map((d, i) => {
-                const empty = d.views === null;
+              {DAY_KEYS.map((k, i) => {
+                const raw = week.views[k];
+                const empty = !hasNum(raw);
                 const h = empty
                   ? 2
-                  : Math.max(4, (d.views / maxScale) * PLOT_H);
+                  : Math.max(4, (Number(raw) / maxScale) * PLOT_H);
                 const x = LEFT + i * SLOT + (SLOT - BAR_W) / 2;
                 const active = selectedBar === i;
                 return (
                   <g
-                    key={d.day}
+                    key={k}
                     onClick={() => !empty && setSelectedBar(active ? null : i)}
                   >
                     <rect
@@ -203,7 +451,7 @@ export default function PublicityPage() {
                       y="160"
                       textAnchor="middle"
                     >
-                      {d.day}
+                      {DAY_SHORT[i]}
                     </text>
                   </g>
                 );
@@ -211,318 +459,311 @@ export default function PublicityPage() {
             </svg>
           </div>
 
-          <div className={styles.topAction}>
-            <button
-              onClick={() => changeViewWeek(weekIdx - 1)}
-              disabled={weekIdx === 0}
-              aria-label="Previous week"
-            >
-              <svg
-                className={styles.topActionLogo}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15.75 19.5 8.25 12l7.5-7.5"
-                />
-              </svg>
-            </button>
-            <p>
-              {viewWeek.current
-                ? `This week · ${viewWeek.label}`
-                : viewWeek.label}
-            </p>
-            <button
-              onClick={() => changeViewWeek(weekIdx + 1)}
-              disabled={weekIdx === weeklyViews.length - 1}
-              aria-label="Next week"
-            >
-              <svg
-                className={styles.topActionLogo}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="m8.25 4.5 7.5 7.5-7.5 7.5"
-                />
-              </svg>
-            </button>
-          </div>
-        </section>
-
-        {/* ── Section 2: Smart Posting Schedule ── */}
-        <section className={styles.scheduleWrapper}>
-          <div className={styles.sectionHeader}>
-            <h2>Smart Posting Schedule</h2>
-            <span>AI · demo data</span>
-          </div>
-
-          <div className={styles.weekBar} role="tablist">
-            {schedule.map((w) => (
+          <div className={styles.weekTabs} role="tablist" aria-label="Weeks">
+            {weekNumbers.map((n) => (
               <button
-                key={w.week}
+                key={n}
                 role="tab"
-                aria-selected={activeWeek === w.week}
-                className={activeWeek === w.week ? styles.weekActive : ""}
-                onClick={() => {
-                  setActiveWeek(w.week);
-                  setOpenPost(null);
-                }}
+                aria-selected={n === viewWeek}
+                className={`${styles.weekTab} ${n === viewWeek ? styles.weekTabActive : ""}`}
+                onClick={() => switchTab(n)}
               >
-                {w.label}
-                {isWeekLocked(w.week) && (
-                  <svg
-                    className={styles.lockIcon}
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="2"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-                    />
-                  </svg>
-                )}
+                Week {n}
+                {n < currentWeek ? " 🔒" : ""}
               </button>
             ))}
+            <button
+              className={styles.addWeekBtn}
+              onClick={handleAddWeek}
+              disabled={adding || !weekHasViews(weeks[currentWeek])}
+            >
+              {adding ? "Adding..." : "+ Add week"}
+            </button>
           </div>
-
-          {locked ? (
-            <div className={styles.lockedCard}>
-              <h3>{week.label} is locked</h3>
-              <p>
-                Send your feedback for Week {activeWeek - 1} first. The AI uses
-                your views and results to build a better plan for this week.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className={styles.insightCard}>
-                <h3>
-                  {week.week === 1
-                    ? "How this plan was made"
-                    : "What the AI learned"}
-                </h3>
-                <p>{week.insight}</p>
-                {previousFeedback && (
-                  <span>
-                    Your Week {activeWeek - 1} feedback:{" "}
-                    {Number(previousFeedback.views).toLocaleString("en-MY")}{" "}
-                    views ·{" "}
-                    {
-                      RATINGS.find((r) => r.key === previousFeedback.rating)
-                        ?.label
-                    }
-                  </span>
-                )}
-              </div>
-
-              <div className={styles.postList}>
-                {week.posts.map((post) => {
-                  const open = openPost === post.id;
-                  const date = formatPostDate(post.date);
-                  const caption = captions.find((c) => c.postId === post.id);
-                  const video = videoFormats.find((v) => v.postId === post.id);
-
-                  return (
-                    <div key={post.id} className={styles.postCard}>
-                      <button
-                        className={styles.postHeader}
-                        aria-expanded={open}
-                        onClick={() => setOpenPost(open ? null : post.id)}
-                      >
-                        <div className={styles.postDate}>
-                          <span>{post.day}</span>
-                          <h3>{date.day}</h3>
-                          <span>{date.month}</span>
-                        </div>
-                        <div className={styles.postInfo}>
-                          <h3>{post.time}</h3>
-                          <div className={styles.platformRow}>
-                            {post.platforms.map((p) => (
-                              <span
-                                key={p}
-                                className={`${styles.platform} ${styles[p]}`}
-                              >
-                                {PLATFORMS[p]}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        <svg
-                          className={`${styles.chevron} ${open ? styles.chevronOpen : ""}`}
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth="1.5"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="m19.5 8.25-7.5 7.5-7.5-7.5"
-                          />
-                        </svg>
-                      </button>
-
-                      {open && (
-                        <div className={styles.postBody}>
-                          <div className={styles.bodyBlock}>
-                            <h4>Why this slot</h4>
-                            <p>{post.reason}</p>
-                          </div>
-
-                          {caption && (
-                            <div className={styles.bodyBlock}>
-                              <h4>Promo Caption</h4>
-                              <p>{caption.text}</p>
-                              <p className={styles.captionCta}>{caption.cta}</p>
-                              <div className={styles.hashtagRow}>
-                                {caption.hashtags.map((tag) => (
-                                  <span key={tag}>{tag}</span>
-                                ))}
-                              </div>
-                              <button
-                                className={styles.copyButton}
-                                onClick={() => handleCopy(post, caption)}
-                              >
-                                {copiedId === post.id
-                                  ? "Copied!"
-                                  : "Copy caption"}
-                              </button>
-                            </div>
-                          )}
-
-                          {video && (
-                            <div className={styles.bodyBlock}>
-                              <h4>Suggested Video Format</h4>
-                              <div className={styles.videoMeta}>
-                                <div>
-                                  <p>Context</p>
-                                  <span>{video.context}</span>
-                                </div>
-                                <div>
-                                  <p>Duration</p>
-                                  <span className={styles.durationBadge}>
-                                    {video.duration}
-                                  </span>
-                                </div>
-                              </div>
-                              <p className={styles.shotTitle}>Shots</p>
-                              <div className={styles.shotList}>
-                                {video.shots.map((shot) => (
-                                  <div
-                                    key={shot.no}
-                                    className={styles.shotItem}
-                                  >
-                                    <b>{shot.no}</b>
-                                    <div>
-                                      <span>{shot.time}</span>
-                                      <p>{shot.description}</p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </>
+          {isCurrent && !weekHasViews(weeks[currentWeek]) && (
+            <p className={styles.tabHint}>
+              Add week unlocks once you log views for at least one day.
+            </p>
           )}
         </section>
 
-        {/* ── Section 3: Feedback ── */}
-        {!locked && hasNextWeek && (
-          <section className={styles.feedbackWrapper}>
-            {feedbackDone[activeWeek] ? (
-              <div className={styles.doneCard}>
-                <h3>Feedback sent</h3>
-                <p>
-                  Week {activeWeek + 1} has been updated using your Week{" "}
-                  {activeWeek} results.
-                </p>
-              </div>
-            ) : (
-              <div className={styles.feedbackCard}>
-                <h3>How did {week.label} go?</h3>
-                <p>
-                  Tell the AI your results so it can improve Week{" "}
-                  {activeWeek + 1}.
-                </p>
+        {/* ── Plan ── */}
+        <section className={styles.scheduleWrapper}>
+          <div className={styles.sectionHeader}>
+            <h2>Smart Posting Schedule</h2>
+            <span>AI</span>
+          </div>
 
-                <div className={styles.field}>
-                  <label htmlFor="views">Total views this week</label>
-                  <input
-                    id="views"
-                    className={styles.input}
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    placeholder="e.g. 8500"
-                    value={form.views}
-                    onChange={(e) =>
-                      setForm({ ...form, views: e.target.value })
-                    }
-                  />
-                </div>
+          {!isCurrent && (
+            <div className={styles.lockedCard}>
+              <h3>🔒 Week {viewWeek} is locked</h3>
+              <p>
+                You can look back at it, but only week {currentWeek} can be
+                edited.
+              </p>
+            </div>
+          )}
 
-                <div className={styles.field}>
-                  <label>Overall result</label>
-                  <div className={styles.ratingRow}>
-                    {RATINGS.map((r) => (
-                      <button
-                        key={r.key}
-                        className={
-                          form.rating === r.key ? styles.ratingActive : ""
-                        }
-                        onClick={() => setForm({ ...form, rating: r.key })}
-                      >
-                        {r.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+          <div className={styles.insightCard}>
+            <h3>How this plan was made</h3>
+            <p>{insight}</p>
+          </div>
 
-                <div className={styles.field}>
-                  <label htmlFor="note">Notes (optional)</label>
-                  <textarea
-                    id="note"
-                    className={styles.input}
-                    rows="3"
-                    placeholder="Which post worked best? Any comments or orders?"
-                    value={form.note}
-                    onChange={(e) => setForm({ ...form, note: e.target.value })}
-                  />
-                </div>
-
-                <button
-                  className={styles.submitButton}
-                  disabled={!form.views || !form.rating}
-                  onClick={handleSubmitFeedback}
+          {isCurrent && (
+            <div className={styles.bodyBlock}>
+              <h4>What do you post about? (optional)</h4>
+              <textarea
+                className={styles.input}
+                rows={2}
+                maxLength={1000}
+                placeholder={
+                  "For example:\nI sell homemade kuih and cakes in Banting."
+                }
+                value={topicDraft ?? state.topic ?? ""}
+                onChange={(e) => setTopicDraft(e.target.value)}
+                onBlur={() => {
+                  if (topicDraft !== null && topicDraft !== state.topic)
+                    updateSettings(orgId, { topic: topicDraft });
+                  setTopicDraft(null);
+                }}
+              />
+              <div className={styles.controlRow}>
+                <select
+                  className={styles.input}
+                  style={{ width: "auto", padding: "10px 12px" }}
+                  value={state.platform}
+                  onChange={(e) =>
+                    updateSettings(orgId, { platform: e.target.value })
+                  }
+                  aria-label="Platform"
                 >
-                  Submit & update Week {activeWeek + 1}
-                </button>
+                  {PLATFORMS.map((p) => (
+                    <option key={p}>{p}</option>
+                  ))}
+                </select>
+                <select
+                  className={styles.input}
+                  style={{ width: "auto", padding: "10px 12px" }}
+                  value={state.postsPerWeek}
+                  onChange={(e) =>
+                    updateSettings(orgId, { postsPerWeek: e.target.value })
+                  }
+                  aria-label="Posts per week"
+                >
+                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                    <option key={n} value={n}>
+                      {n} post{n > 1 ? "s" : ""}/week
+                    </option>
+                  ))}
+                </select>
+                {needIdeas.length > 0 && (
+                  <button
+                    className={styles.copyButton}
+                    style={{ padding: "10px 16px", fontSize: 13 }}
+                    onClick={() => generateIdeas(needIdeas)}
+                    disabled={busyDay !== null}
+                  >
+                    {busyDay === "all"
+                      ? "Planning videos..."
+                      : `Make ideas for ${needIdeas.length} day${needIdeas.length > 1 ? "s" : ""}`}
+                  </button>
+                )}
               </div>
-            )}
-          </section>
-        )}
+            </div>
+          )}
+
+          {error && <p style={{ color: "crimson", fontSize: 14 }}>{error}</p>}
+          {isCurrent && loadingPlan && planned.length === 0 && (
+            <p style={{ fontSize: 14, color: "#777" }}>
+              Working out your schedule...
+            </p>
+          )}
+          {isCurrent && !loadingPlan && planned.length === 0 && (
+            <p style={{ fontSize: 14, color: "#777" }}>
+              No more days to plan this week.
+            </p>
+          )}
+
+          <div className={styles.postList}>
+            {planned.map((p) => {
+              const open = openDay === p.day;
+              const d = dateForDay(state.startMonday, viewWeek, p.day);
+              const views = week.views[p.day];
+              const idea = week.ideas.find((i) => i.day === p.day);
+              return (
+                <div key={p.day} className={styles.postCard}>
+                  <button
+                    className={styles.postHeader}
+                    aria-expanded={open}
+                    onClick={() => setOpenDay(open ? null : p.day)}
+                  >
+                    <div className={styles.postDate}>
+                      <span>{DAY_SHORT[DAY_KEYS.indexOf(p.day)]}</span>
+                      <h3>{d.getDate()}</h3>
+                      <span>
+                        {d.toLocaleDateString("en-MY", { month: "short" })}
+                      </span>
+                    </div>
+                    <div className={styles.postInfo}>
+                      <h3>{DAY_FULL[DAY_KEYS.indexOf(p.day)]}</h3>
+                      <div className={styles.platformRow}>
+                        <span
+                          className={`${styles.platform} ${platformClass(state.platform)}`}
+                        >
+                          {state.platform}
+                        </span>
+                        {p.confidence && (
+                          <span
+                            className={styles.confChip}
+                            data-level={p.confidence}
+                          >
+                            {CONF_LABEL[p.confidence]}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span
+                      className={
+                        hasNum(views)
+                          ? styles.viewsBadge
+                          : styles.viewsBadgeEmpty
+                      }
+                    >
+                      {hasNum(views)
+                        ? `${fmtNum(views)} views`
+                        : past(p.day)
+                          ? "Add views"
+                          : "Upcoming"}
+                    </span>
+                    <svg
+                      className={`${styles.chevron} ${open ? styles.chevronOpen : ""}`}
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth="1.5"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="m19.5 8.25-7.5 7.5-7.5-7.5"
+                      />
+                    </svg>
+                  </button>
+
+                  {open && (
+                    <div className={styles.postBody}>
+                      <div className={styles.bodyBlock}>
+                        <h4>Why this day</h4>
+                        <p>{p.reason}</p>
+                      </div>
+
+                      {/* Feedback for THIS suggestion */}
+                      <div className={styles.bodyBlock}>
+                        <h4>How did this post do?</h4>
+                        <ViewsBox
+                          value={views}
+                          disabled={!isCurrent}
+                          onSave={(v) =>
+                            saveDayViews(orgId, viewWeek, p.day, v)
+                          }
+                        />
+                        <p className={styles.fieldHint}>
+                          {isCurrent
+                            ? "Saved when you leave the box. Leave it empty if you did not post."
+                            : "This week is locked."}
+                        </p>
+                      </div>
+
+                      {idea ? (
+                        <>
+                          <div className={styles.bodyBlock}>
+                            <h4>Video Idea</h4>
+                            <p>
+                              <strong>{idea.title}</strong>
+                            </p>
+                            <p>{idea.video_context}</p>
+                            <span className={styles.durationBadge}>
+                              {idea.duration_seconds
+                                ? `about ${idea.duration_seconds}s`
+                                : "-"}
+                            </span>
+                          </div>
+                          <div className={styles.bodyBlock}>
+                            <h4>Shot list</h4>
+                            <div className={styles.shotList}>
+                              {(idea.shots || []).map((sh, i) => (
+                                <div key={i} className={styles.shotItem}>
+                                  <b>{i + 1}</b>
+                                  <div>
+                                    <span>
+                                      {sh.seconds
+                                        ? `${sh.seconds}s`
+                                        : sh.shot_type}
+                                    </span>
+                                    <p>{sh.description}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className={styles.bodyBlock}>
+                            <h4>Promo Caption</h4>
+                            <p>{idea.caption}</p>
+                            {idea.call_to_action && (
+                              <p className={styles.captionCta}>
+                                {idea.call_to_action}
+                              </p>
+                            )}
+                            <div className={styles.hashtagRow}>
+                              {(idea.hashtags || []).map((t) => (
+                                <span key={t}>{t}</span>
+                              ))}
+                            </div>
+                            <div className={styles.controlRow}>
+                              <button
+                                className={styles.copyButton}
+                                onClick={() => handleCopy(p.day, idea)}
+                              >
+                                {copied === p.day ? "Copied!" : "Copy caption"}
+                              </button>
+                              {isCurrent && (
+                                <button
+                                  className={styles.ghostBtn}
+                                  onClick={() => generateIdeas([p.day])}
+                                  disabled={busyDay !== null}
+                                >
+                                  {busyDay === p.day
+                                    ? "Planning..."
+                                    : "New idea for this day"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        isCurrent && (
+                          <div className={styles.bodyBlock}>
+                            <h4>Video Idea</h4>
+                            <button
+                              className={styles.copyButton}
+                              onClick={() => generateIdeas([p.day])}
+                              disabled={busyDay !== null}
+                            >
+                              {busyDay === p.day
+                                ? "Planning..."
+                                : "Make idea for this day"}
+                            </button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </main>
 
       <NavBar />

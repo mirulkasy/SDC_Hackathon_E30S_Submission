@@ -61,6 +61,7 @@ export default function AppBar({
   onBack,
   actionIcon,
   onAction,
+  actionMenu,
 }) {
   const router = useRouter();
 
@@ -91,18 +92,19 @@ export default function AppBar({
         <h1 className={styles.titleText}>{title}</h1>
 
         {/* Right: action button — hidden when actionIcon is null/undefined */}
-        {actionIcon != null ? (
-          <button
-            className={styles.topActionLogo}
-            onClick={onAction}
-            aria-label="Action"
-          >
-            {actionIcon}
-          </button>
-        ) : (
-          /* Invisible spacer keeps the title centred when there's no right button */
-          <span className={styles.topActionLogo} aria-hidden="true" />
-        )}
+        <div className={styles.rightActions}>
+          {actionIcon != null && (
+            <button
+              className={styles.topActionLogo}
+              onClick={onAction}
+              aria-label="Action"
+            >
+              {actionIcon}
+            </button>
+          )}
+
+          {actionMenu}
+        </div>
       </div>
     </section>
   );

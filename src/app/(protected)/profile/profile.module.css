@@ -224,3 +224,135 @@
 .logoutLogo {
     width: 22px;
 }
+
+
+/* Profile and Organization tabs */
+.tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    margin: 10px 15px 5px;
+    padding: 5px;
+    background: #e8ecea;
+    border-radius: 12px;
+}
+
+.tab {
+    text-align: center;
+    padding: 11px 8px;
+    border-radius: 9px;
+    background: transparent;
+    color: #666;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.activeTab {
+    background: white;
+    color: var(--primary);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Members list */
+.memberHeading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.memberCount {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 23px;
+    height: 23px;
+    padding: 0 6px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: #e8ecea;
+    color: var(--primary);
+    font-size: var(--fontsize-12);
+    font-weight: 700;
+}
+
+.memberRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 15px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.memberRow:last-child {
+    border-bottom: none;
+}
+
+.memberAvatar {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #e8ecea;
+    color: var(--primary);
+    font-size: var(--fontsize-16);
+    font-weight: 700;
+}
+
+.memberInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.memberName {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    color: var(--dark);
+    overflow-wrap: anywhere;
+}
+
+.memberEmail {
+    margin-top: 4px;
+    font-size: var(--fontsize-12);
+    color: #888;
+    overflow-wrap: anywhere;
+}
+
+.youLabel {
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: #edf3ff;
+    color: var(--primary);
+    font-size: var(--fontsize-11);
+    font-weight: 600;
+}
+
+.roleBadge {
+    flex-shrink: 0;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: #f0f0f0;
+    color: #666;
+    font-size: var(--fontsize-12);
+    font-weight: 600;
+}
+
+.ownerBadge {
+    background: #e4f3e9;
+    color: #176b43;
+}
+
+.emptyText {
+    margin: 0;
+    padding: 18px 15px;
+    color: #888;
+    font-size: var(--fontsize-14);
+}
+ 

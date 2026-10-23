@@ -2,7 +2,23 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
+import { WRITE_TOOLS, executeAction } from "@/lib/chatTools";
+import {
+  addMessage,
+  createChat,
+  patchChat,
+  removeChat,
+  subscribeChats,
+  subscribeMessages,
+  updateMessage,
+} from "@/lib/chat";
+import { messageToText, runAgent } from "@/lib/chatAgent";
+import { MAX_FILES, fileToPayload } from "@/lib/chatFiles";
 import styles from "./chat.module.css";
+import ui from "./chatMessages.module.css";
 
 const GREETINGS = [
   "How can we help you?",
@@ -13,59 +29,16 @@ const GREETINGS = [
 ];
 
 const SUGGESTIONS = [
-  { id: "spreadsheet", label: "Make a spreadsheet" },
-  { id: "products", label: "Search for products" },
-  { id: "summarise", label: "Summarise a document" },
+  { label: "Add a new product", icon: "products" },
+  { label: "Record a sale", icon: "spreadsheet" },
+  { label: "How is my week going?", icon: "summarise" },
+  { label: "What is low on stock?", icon: "products" },
 ];
 
-// Mock history for the sidebar. Replace with real conversations later.
-const CHAT_HISTORY = [
-  {
-    group: "Today",
-    chats: [
-      {
-        id: "c1",
-        title: "Price my nasi lemak set",
-        preview: "Based on your costs, RM 12.90 gives about 38% profit...",
-        time: "2:14 PM",
-      },
-      {
-        id: "c2",
-        title: "Low stock this week",
-        preview: "Eggs, cooking oil and sugar are below the minimum.",
-        time: "10:02 AM",
-      },
-    ],
-  },
-  {
-    group: "Yesterday",
-    chats: [
-      {
-        id: "c3",
-        title: "SST registration help",
-        preview: "You only need to register once taxable turnover passes...",
-        time: "Thu",
-      },
-    ],
-  },
-  {
-    group: "Previous 7 days",
-    chats: [
-      {
-        id: "c4",
-        title: "Summarise supplier invoice",
-        preview: "The invoice totals RM 3,420 across 14 line items.",
-        time: "Mon",
-      },
-      {
-        id: "c5",
-        title: "Weekend promo ideas",
-        preview: "A Friday lunch bundle worked best for similar stalls.",
-        time: "Sun",
-      },
-    ],
-  },
-];
+// Summarise once this many messages are unsummarised; keep the newest KEEP as-is
+const SUMMARY_TRIGGER = 14;
+const SUMMARY_KEEP = 6;
+const MAX_CONTEXT_MESSAGES = 24;
 
 function Icon({ d, size = 22, strokeWidth = 1.5 }) {
   return (
@@ -95,6 +68,8 @@ const ICONS = {
     "M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z",
   plus: "M12 4.5v15m7.5-7.5h-15",
   send: "M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3",
+  trash:
+    "m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0",
   spreadsheet:
     "M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625c0-.621.504-1.125 1.125-1.125h18.75c.621 0 1.125.504 1.125 1.125v12.75m-21.75 0a1.125 1.125 0 0 0 1.125 1.125m20.625 0a1.125 1.125 0 0 1-1.125-1.125m-8.25-9.75h3.375c.621 0 1.125.504 1.125 1.125v3.375c0 .621-.504 1.125-1.125 1.125H12.75m-3.75-4.5v4.5m4.5-4.5h3m-3 2.25h3m-3 2.25h3m-7.5 0H9m3.75 0H9",
   products:
@@ -103,18 +78,319 @@ const ICONS = {
     "M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z",
 };
 
+/* ---------------- helpers ---------------- */
+
+const pickGreeting = () =>
+  GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+const makeTitle = (t) => {
+  const s = String(t).replace(/\s+/g, " ").trim();
+  return s.length > 40 ? `${s.slice(0, 40).trimEnd()}…` : s || "New chat";
+};
+const makePreview = (t) => String(t).replace(/\s+/g, " ").trim().slice(0, 90);
+
+function groupChats(list) {
+  const day = 86400000;
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const t = start.getTime();
+  const groups = { Today: [], Yesterday: [], "Previous 7 days": [], Older: [] };
+  for (const c of list) {
+    const u = c.updatedAt || 0;
+    if (u >= t) groups.Today.push(c);
+    else if (u >= t - day) groups.Yesterday.push(c);
+    else if (u >= t - 7 * day) groups["Previous 7 days"].push(c);
+    else groups.Older.push(c);
+  }
+  return Object.entries(groups)
+    .filter(([, v]) => v.length)
+    .map(([group, chats]) => ({ group, chats }));
+}
+
+function timeLabel(ts) {
+  const d = new Date(ts || Date.now());
+  return new Date().toDateString() === d.toDateString()
+    ? d.toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString("en-MY", { day: "numeric", month: "short" });
+}
+
+/* ---------------- tiny text renderer (**bold**, - lists, 1. lists) ---------------- */
+
+const inline = (text) =>
+  text
+    .split(/(\*\*[^*]+\*\*)/g)
+    .map((p, i) =>
+      p.length > 4 && p.startsWith("**") && p.endsWith("**") ? (
+        <strong key={i}>{p.slice(2, -2)}</strong>
+      ) : (
+        p
+      ),
+    );
+
+function RichText({ text }) {
+  const blocks = String(text || "").split(/\n{2,}/);
+  return blocks.map((block, i) => {
+    const lines = block.split("\n");
+    if (lines.every((l) => /^\s*[-•]\s+/.test(l))) {
+      return (
+        <ul key={i}>
+          {lines.map((l, j) => (
+            <li key={j}>{inline(l.replace(/^\s*[-•]\s+/, ""))}</li>
+          ))}
+        </ul>
+      );
+    }
+    if (lines.every((l) => /^\s*\d+\.\s+/.test(l))) {
+      return (
+        <ol key={i}>
+          {lines.map((l, j) => (
+            <li key={j}>{inline(l.replace(/^\s*\d+\.\s+/, ""))}</li>
+          ))}
+        </ol>
+      );
+    }
+    return (
+      <p key={i}>
+        {lines.map((l, j) => (
+          <span key={j}>
+            {j > 0 && <br />}
+            {inline(l)}
+          </span>
+        ))}
+      </p>
+    );
+  });
+}
+
+/* ---------------- approval card ---------------- */
+
+const KIND_LABEL = { add: "Add", update: "Update", delete: "Delete" };
+
+function ActionCard({ action, running, onAllow, onDeny }) {
+  const working = action.status === "running" && running;
+  const waiting =
+    action.status === "pending" ||
+    action.status === "failed" ||
+    (action.status === "running" && !running);
+
+  return (
+    <div className={ui.card}>
+      <div className={ui.cardHead}>
+        <span className={`${ui.kind} ${ui[`kind_${action.kind}`] ?? ""}`}>
+          {KIND_LABEL[action.kind] ?? "Change"}
+        </span>
+        <h4>{action.title}</h4>
+      </div>
+
+      <div className={ui.rows}>
+        {action.rows.map((r, i) => (
+          <div key={i} className={ui.row}>
+            <span>{r.label}</span>
+            <b>
+              {r.from !== undefined && (
+                <span className={ui.from}>{r.from}</span>
+              )}
+              {r.value}
+            </b>
+          </div>
+        ))}
+      </div>
+
+      {action.warnings?.map((w, i) => (
+        <p key={i} className={ui.warning}>
+          ⚠ {w}
+        </p>
+      ))}
+
+      {action.status === "failed" && (
+        <p className={ui.failed}>
+          Failed: {action.note || "Something went wrong."}
+        </p>
+      )}
+
+      {waiting && (
+        <div className={ui.cardActions}>
+          <button
+            type="button"
+            className={`${ui.allowBtn} ${action.kind === "delete" ? ui.allowDanger : ""}`}
+            onClick={onAllow}
+          >
+            {action.status === "failed" ? "Try again" : "Allow"}
+          </button>
+          <button type="button" className={ui.denyBtn} onClick={onDeny}>
+            Deny
+          </button>
+        </div>
+      )}
+      {working && <p className={ui.cardState}>Working…</p>}
+      {action.status === "done" && (
+        <p className={ui.cardDone}>✓ {action.note || "Done."}</p>
+      )}
+      {action.status === "rejected" && (
+        <p className={ui.cardState}>Denied. Nothing changed.</p>
+      )}
+    </div>
+  );
+}
+
+function InterviewCard({ form, action, running, onSubmit, onCancel }) {
+  const [values, setValues] = useState({});
+  const known = action?.args || {};
+
+  // value the user typed, else what the AI already filled in
+  const current = (key) =>
+    values[key] !== undefined && values[key] !== "" ? values[key] : known[key];
+
+  // Food products also need a due date once the category is known
+  const needsDueDate =
+    form.fields.some((f) => f.key === "dueDate") &&
+    current("category") === "Food";
+
+  const visibleFields = form.fields.filter(
+    (f) =>
+      form.missingKeys.includes(f.key) ||
+      (f.key === "dueDate" && needsDueDate && !known.dueDate),
+  );
+
+  const requiredKeys = [
+    ...form.missingKeys,
+    ...(needsDueDate && !known.dueDate ? ["dueDate"] : []),
+  ];
+  const complete = requiredKeys.every(
+    (k) => values[k] !== undefined && values[k] !== "",
+  );
+
+  // Details the AI already understood, shown read-only
+  const knownRows = form.fields
+    .filter((f) => known[f.key] != null && known[f.key] !== "")
+    .map((f) => {
+      const raw = known[f.key];
+      const label =
+        f.type === "select"
+          ? (f.options.find((o) => o.value === raw)?.label ?? raw)
+          : raw;
+      return { key: f.key, label: f.label, value: String(label) };
+    });
+
+  const fieldValue = (f) =>
+    f.type === "number"
+      ? values[f.key] === undefined || values[f.key] === ""
+        ? ""
+        : Number(values[f.key])
+      : (values[f.key] ?? "");
+
+  return (
+    <div className={ui.formCard}>
+      <div className={ui.formCardHead}>
+        <h4>{form.title}</h4>
+        <span className={ui.formStep}>{visibleFields.length} missing</span>
+      </div>
+
+      {knownRows.length > 0 && (
+        <div className={ui.rows}>
+          {knownRows.map((r) => (
+            <div key={r.key} className={ui.row}>
+              <span>{r.label}</span>
+              <b>{r.value}</b>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {visibleFields.map((f) => (
+        <div key={f.key} className={ui.formField}>
+          <label>
+            {f.label}
+            {requiredKeys.includes(f.key) && <span> *</span>}
+          </label>
+          {f.type === "select" ? (
+            <select
+              className={ui.formSelect}
+              value={values[f.key] ?? ""}
+              onChange={(e) =>
+                setValues((v) => ({ ...v, [f.key]: e.target.value }))
+              }
+            >
+              <option value="">Select…</option>
+              {f.options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              className={ui.formInput}
+              type={f.type === "number" ? "number" : "text"}
+              inputMode={f.type === "number" ? "decimal" : undefined}
+              min={f.min}
+              step={f.type === "number" ? "any" : undefined}
+              placeholder={f.placeholder}
+              value={fieldValue(f)}
+              onChange={(e) =>
+                setValues((v) => ({ ...v, [f.key]: e.target.value }))
+              }
+            />
+          )}
+        </div>
+      ))}
+
+      <div className={ui.formCardActions}>
+        <button
+          type="button"
+          className={ui.allowBtn}
+          disabled={!complete || running}
+          onClick={() => onSubmit(values)}
+        >
+          Confirm
+        </button>
+        <button
+          type="button"
+          className={ui.denyBtn}
+          onClick={onCancel}
+          disabled={running}
+        >
+          Cancel
+        </button>
+      </div>
+      {!complete && (
+        <p className={ui.cardState}>Fill in the required fields, or cancel.</p>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- page ---------------- */
+
 export default function ChatPage() {
+  const { user, profile } = useAuth();
+  const orgId = profile?.orgId;
+
   const [greeting, setGreeting] = useState(GREETINGS[0]);
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeChat, setActiveChat] = useState(null);
   const [historySearch, setHistorySearch] = useState("");
-  const fileInputRef = useRef(null);
 
-  // Randomise after mount so server and client HTML match (no hydration error)
+  const [chats, setChats] = useState([]);
+  const [activeId, setActiveId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [org, setOrg] = useState(null);
+
+  const [busy, setBusy] = useState(false);
+  const [stepLabel, setStepLabel] = useState("");
+  const [error, setError] = useState("");
+  const [runningKeys, setRunningKeys] = useState(new Set());
+
+  const fileInputRef = useRef(null);
+  const bottomRef = useRef(null);
+  const messagesRef = useRef([]);
+  const chatsRef = useRef([]);
+  const runningRef = useRef(new Set());
+  messagesRef.current = messages;
+  chatsRef.current = chats;
+
   useEffect(() => {
-    setGreeting(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
+    setGreeting(pickGreeting());
   }, []);
 
   // Sidebar: lock page scroll and close on Escape
@@ -130,54 +406,317 @@ export default function ChatPage() {
     };
   }, [sidebarOpen]);
 
-  const canSend = message.trim().length > 0 || attachments.length > 0;
+  // Organization name and type (sent to the AI as context)
+  useEffect(() => {
+    if (!orgId) return;
+    getDoc(doc(db, "organizations", orgId))
+      .then((s) => s.exists() && setOrg(s.data()))
+      .catch(() => {});
+  }, [orgId]);
+
+  // Chat list
+  useEffect(() => {
+    if (!orgId || !user) return;
+    return subscribeChats(orgId, user.uid, setChats);
+  }, [orgId, user]);
+
+  // Messages of the open chat
+  useEffect(() => {
+    setMessages([]);
+    if (!orgId || typeof orgId !== "string") return;
+    if (!activeId || typeof activeId !== "string") return;
+    return subscribeMessages(orgId, activeId, setMessages);
+  }, [orgId, activeId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages.length, busy, stepLabel]);
+
+  const canSend =
+    (message.trim().length > 0 || attachments.length > 0) && !busy;
+  const showThread = messages.length > 0 || busy;
+
+  /* ---------- sidebar actions ---------- */
 
   function handleNewChat() {
+    if (busy) return;
+    setActiveId(null);
     setMessage("");
     setAttachments([]);
-    setActiveChat(null);
+    setError("");
     setSidebarOpen(false);
-    setGreeting(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
-    // TODO: clear conversation state from the AI model here
+    setGreeting(pickGreeting());
   }
 
   function handleSelectChat(id) {
-    setActiveChat(id);
+    if (busy) return;
+    setActiveId(id);
+    setError("");
     setSidebarOpen(false);
-    // TODO: load this conversation
   }
 
-  function handleFiles(event) {
-    const picked = Array.from(event.target.files || []);
-    setAttachments((prev) => [...prev, ...picked]);
-    event.target.value = ""; // allow re-picking the same file
-  }
-
-  function removeAttachment(index) {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function handleSend() {
-    if (!canSend) return;
-    // TODO: send { text: message, files: attachments } to the AI model
-    console.log({ text: message, files: attachments });
-    setMessage("");
-    setAttachments([]);
-  }
-
-  function handleKeyDown(event) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      handleSend();
+  async function handleDeleteChat(c) {
+    if (busy || !window.confirm(`Delete "${c.title}"? This cannot be undone.`))
+      return;
+    if (activeId === c.id) setActiveId(null);
+    try {
+      await removeChat(orgId, c.id);
+    } catch (err) {
+      console.error(err);
+      setError("Couldn't delete that chat.");
     }
   }
 
-  const filteredHistory = CHAT_HISTORY.map((g) => ({
-    ...g,
-    chats: g.chats.filter((c) =>
-      c.title.toLowerCase().includes(historySearch.toLowerCase()),
+  /* ---------- files ---------- */
+
+  async function handleFiles(event) {
+    const picked = Array.from(event.target.files || []);
+    event.target.value = "";
+    setError("");
+    const room = MAX_FILES - attachments.length;
+    if (picked.length > room)
+      setError(`You can attach up to ${MAX_FILES} files.`);
+    const next = [];
+    for (const f of picked.slice(0, Math.max(room, 0))) {
+      try {
+        next.push(await fileToPayload(f));
+      } catch (err) {
+        setError(err.message);
+      }
+    }
+    setAttachments((prev) => [...prev, ...next]);
+  }
+
+  /* ---------- sending ---------- */
+
+  async function send(override) {
+    const typed = String(override ?? message).trim();
+    if ((!typed && attachments.length === 0) || busy || !orgId || !user) return;
+
+    const text = typed || "Please process the attached file(s).";
+    const files = attachments;
+    setError("");
+    setBusy(true);
+    setStepLabel("Thinking…");
+
+    let chatId = activeId;
+    let chat = chatsRef.current.find((c) => c.id === chatId);
+    if (!chatId) {
+      chatId = await createChat({
+        orgId,
+        uid: user.uid,
+        title: makeTitle(text),
+      });
+      if (!chatId || typeof chatId !== "string") {
+        setError("Could not create chat. Please try again.");
+        setBusy(false);
+        return;
+      }
+      chat = { summary: "", summarizedUpTo: 0 };
+      setActiveId(chatId);
+    }
+
+    const userMsg = {
+      role: "user",
+      text: text.slice(0, 2000),
+      attachments: files.map((f) => ({ name: f.name })),
+      ts: Date.now(),
+    };
+    const userId = addMessage(orgId, chatId, userMsg, user.uid);
+    setMessage("");
+    setAttachments([]);
+
+    // Only what the AI needs: the saved summary + messages newer than it
+    const upTo = chat?.summarizedUpTo || 0;
+    const base = (activeId === chatId ? messagesRef.current : []).filter(
+      (m) => m.ts > upTo,
+    );
+    const unsummarized = [...base, { ...userMsg, id: userId }];
+
+    try {
+      const result = await runAgent({
+        messages: unsummarized.slice(-MAX_CONTEXT_MESSAGES),
+        summary: chat?.summary || "",
+        context: {
+          today: new Date().toLocaleDateString("en-CA"),
+          weekday: new Date().toLocaleDateString("en-US", { weekday: "long" }),
+          userName: profile?.name || user.displayName || "",
+          role: profile?.role === "owner" ? "owner" : "staff",
+          orgName: org?.name || "",
+          businessType: org?.businessType || "",
+        },
+        ctx: { orgId, user, isOwner: profile?.role === "owner", files },
+        onStep: setStepLabel,
+      });
+
+      const aiMsg = {
+        role: "assistant",
+        text: result.text,
+        actions: result.actions,
+        choices: result.choices,
+        form: result.form || null,
+        ts: Date.now(),
+      };
+      addMessage(orgId, chatId, aiMsg, user.uid);
+      patchChat(orgId, chatId, {
+        updatedAt: aiMsg.ts,
+        lastPreview: makePreview(result.text),
+      });
+      maybeSummarize(chatId, chat?.summary || "", [...unsummarized, aiMsg]);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Something went wrong. Please try again.");
+      patchChat(orgId, chatId, { updatedAt: Date.now() });
+    } finally {
+      setBusy(false);
+      setStepLabel("");
+    }
+  }
+
+  // Saves a short summary so the AI never has to re-read the whole chat
+  async function maybeSummarize(chatId, previousSummary, unsummarized) {
+    if (unsummarized.length <= SUMMARY_TRIGGER) return;
+    const old = unsummarized.slice(0, unsummarized.length - SUMMARY_KEEP);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "summarize",
+          previousSummary,
+          messages: old.map((m) => ({
+            role: m.role === "user" ? "user" : "assistant",
+            text: messageToText(m),
+          })),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.summary) return;
+      patchChat(orgId, chatId, {
+        summary: data.summary,
+        summarizedUpTo: old[old.length - 1].ts,
+      });
+    } catch {
+      // try again after the next message
+    }
+  }
+
+  /* ---------- approval cards ---------- */
+
+  async function runActions(msg, ids, decision) {
+    if (!activeId || runningRef.current.has(msg.id)) return;
+    const chatId = activeId;
+    runningRef.current.add(msg.id);
+    setRunningKeys(new Set(runningRef.current));
+
+    const latest = messagesRef.current.find((m) => m.id === msg.id) || msg;
+    const actions = (latest.actions || []).map((a) => ({ ...a }));
+    const save = () => updateMessage(orgId, chatId, msg.id, { actions });
+    const ctx = { orgId, user, isOwner: profile?.role === "owner", files: [] };
+
+    try {
+      for (const id of ids) {
+        const a = actions.find((x) => x.id === id);
+        if (!a || !["pending", "failed", "running"].includes(a.status))
+          continue;
+
+        if (decision === "deny") {
+          a.status = "rejected";
+          a.note = "";
+          save();
+          continue;
+        }
+        a.status = "running";
+        save();
+        try {
+          const out = await executeAction(a, ctx);
+          a.status = "done";
+          a.note = out?.note || "Done.";
+        } catch (err) {
+          console.error(err);
+          a.status = "failed";
+          a.note = err?.message || "Something went wrong.";
+        }
+        save();
+      }
+    } finally {
+      runningRef.current.delete(msg.id);
+      setRunningKeys(new Set(runningRef.current));
+    }
+  }
+
+  async function submitInterview(m, values) {
+    if (runningRef.current.has(m.id)) return;
+    runningRef.current.add(m.id);
+    setRunningKeys(new Set(runningRef.current));
+    const chatId = activeId;
+    const actions = (m.actions || []).map((a) => ({ ...a }));
+    const a = actions[0];
+    const ctx = { orgId, user, isOwner: profile?.role === "owner", files: [] };
+    try {
+      const merged = { ...a.args };
+      for (const f of m.form.fields) {
+        const v = values[f.key];
+        if (v === undefined || v === "") continue;
+        merged[f.key] = f.type === "number" ? Number(v) : v;
+      }
+      const prep = await WRITE_TOOLS[a.tool].prepare(merged, ctx);
+      if (!prep.ok) {
+        setError(prep.error);
+        return;
+      } // form stays open
+      const out = await executeAction({ ...a, args: prep.args }, ctx);
+      a.args = prep.args;
+      a.title = prep.title;
+      a.rows = prep.rows;
+      a.status = "done";
+      a.note = out?.note || "Done.";
+      await updateMessage(orgId, chatId, m.id, {
+        actions,
+        form: { ...m.form, status: "done" },
+      });
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Something went wrong.");
+    } finally {
+      runningRef.current.delete(m.id);
+      setRunningKeys(new Set(runningRef.current));
+    }
+  }
+
+  async function cancelInterview(m) {
+    const actions = (m.actions || []).map((a) => ({
+      ...a,
+      status: "rejected",
+    }));
+    await updateMessage(orgId, activeId, m.id, {
+      actions,
+      form: { ...m.form, status: "cancelled" },
+    });
+  }
+
+  const isWaiting = (a) => ["pending", "failed", "running"].includes(a.status);
+
+  function handleKeyDown(event) {
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey &&
+      !event.nativeEvent.isComposing
+    ) {
+      event.preventDefault();
+      send();
+    }
+  }
+
+  const q = historySearch.toLowerCase();
+  const filteredHistory = groupChats(
+    chats.filter(
+      (c) =>
+        (c.title || "").toLowerCase().includes(q) ||
+        (c.lastPreview || "").toLowerCase().includes(q),
     ),
-  })).filter((g) => g.chats.length > 0);
+  );
+  const lastId = messages[messages.length - 1]?.id;
 
   return (
     <>
@@ -214,7 +753,6 @@ export default function ChatPage() {
             <Icon d={ICONS.compose} size={18} />
             New chat
           </button>
-
           <div className={styles.historySearch}>
             <Icon d={ICONS.search} size={16} />
             <input
@@ -231,39 +769,49 @@ export default function ChatPage() {
             <section key={group.group} className={styles.historyGroup}>
               <h3>{group.group}</h3>
               {group.chats.map((chat) => (
-                <button
-                  key={chat.id}
-                  type="button"
-                  className={`${styles.chatCard} ${
-                    activeChat === chat.id ? styles.chatCardActive : ""
-                  }`}
-                  onClick={() => handleSelectChat(chat.id)}
-                  aria-current={activeChat === chat.id ? "true" : undefined}
-                >
-                  <span className={styles.chatCardIcon}>
-                    <Icon d={ICONS.bubble} size={18} />
-                  </span>
-                  <span className={styles.chatCardBody}>
-                    <span className={styles.chatCardTop}>
-                      <span className={styles.chatCardTitle}>{chat.title}</span>
-                      <span className={styles.chatCardTime}>{chat.time}</span>
+                <div key={chat.id} className={ui.chatRow}>
+                  <button
+                    type="button"
+                    className={`${styles.chatCard} ${activeId === chat.id ? styles.chatCardActive : ""}`}
+                    onClick={() => handleSelectChat(chat.id)}
+                    aria-current={activeId === chat.id ? "true" : undefined}
+                  >
+                    <span className={styles.chatCardIcon}>
+                      <Icon d={ICONS.bubble} size={18} />
                     </span>
-                    <span className={styles.chatCardPreview}>
-                      {chat.preview}
+                    <span className={styles.chatCardBody}>
+                      <span className={styles.chatCardTop}>
+                        <span className={styles.chatCardTitle}>
+                          {chat.title}
+                        </span>
+                        <span className={styles.chatCardTime}>
+                          {timeLabel(chat.updatedAt)}
+                        </span>
+                      </span>
+                      <span className={styles.chatCardPreview}>
+                        {chat.lastPreview}
+                      </span>
                     </span>
-                  </span>
-                </button>
+                  </button>
+                  <button
+                    type="button"
+                    className={ui.chatDelete}
+                    onClick={() => handleDeleteChat(chat)}
+                    aria-label={`Delete chat ${chat.title}`}
+                  >
+                    <Icon d={ICONS.trash} size={16} />
+                  </button>
+                </div>
               ))}
             </section>
           ))}
-
           {filteredHistory.length === 0 && (
             <p className={styles.historyEmpty}>No chats found</p>
           )}
         </div>
       </aside>
 
-      {/* ── Custom top bar: menu · logo · new chat ── */}
+      {/* ── Top bar ── */}
       <header className={styles.topBar}>
         <button
           type="button"
@@ -274,7 +822,6 @@ export default function ChatPage() {
         >
           <Icon d={ICONS.menu} />
         </button>
-
         <Image
           className={styles.topLogo}
           src="/assets/biscoach/logo.png"
@@ -283,7 +830,6 @@ export default function ChatPage() {
           height={33}
           priority
         />
-
         <button
           type="button"
           className={styles.iconBtn}
@@ -294,39 +840,153 @@ export default function ChatPage() {
         </button>
       </header>
 
-      <main className={styles.chatPage}>
-        {/* ── Mascot & greeting ── */}
-        <section className={styles.mascotSection}>
-          <div className={styles.mascot}>
-            <Image
-              src="/assets/biscoach/think.png"
-              alt="Biscoach mascot"
-              width={160}
-              height={160}
-            />
-            <h1>{greeting}</h1>
-          </div>
-        </section>
+      <main className={`${styles.chatPage} ${ui.pageExtra}`}>
+        {!showThread ? (
+          <>
+            <section className={styles.mascotSection}>
+              <div className={styles.mascot}>
+                <Image
+                  src="/assets/biscoach/think.png"
+                  alt="Biscoach mascot"
+                  width={160}
+                  height={160}
+                />
+                <h1>{greeting}</h1>
+              </div>
+            </section>
 
-        {/* ── Quick suggestions ── */}
-        <section className={styles.suggestSection} aria-label="Suggestions">
-          <div className={styles.suggestRow}>
-            {SUGGESTIONS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={styles.suggestChip}
-                onClick={() => setMessage(item.label)}
-              >
-                <Icon d={ICONS[item.id]} size={18} />
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </section>
+            <section className={styles.suggestSection} aria-label="Suggestions">
+              <div className={styles.suggestRow}>
+                {SUGGESTIONS.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className={styles.suggestChip}
+                    onClick={() => send(item.label)}
+                    disabled={busy || !orgId}
+                  >
+                    <Icon d={ICONS[item.icon]} size={18} />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+          </>
+        ) : (
+          <section className={ui.thread} aria-live="polite">
+            {messages.map((m) => {
+              if (m.role === "user") {
+                return (
+                  <div key={m.id} className={ui.userRow}>
+                    {m.attachments?.map((f, i) => (
+                      <span key={i} className={ui.fileTag}>
+                        📎 {f.name}
+                      </span>
+                    ))}
+                    <div className={ui.userBubble}>{m.text}</div>
+                  </div>
+                );
+              }
+
+              const actions = m.actions || [];
+              const waitingIds = actions.filter(isWaiting).map((a) => a.id);
+              return (
+                <div key={m.id} className={ui.aiRow}>
+                  <div className={ui.aiText}>
+                    <RichText text={m.text} />
+                  </div>
+
+                  {actions
+                    .filter((a) => a.status !== "needs_input")
+                    .map((a) => (
+                      <ActionCard
+                        key={a.id}
+                        action={a}
+                        running={runningKeys.has(m.id)}
+                        onAllow={() => runActions(m, [a.id], "allow")}
+                        onDeny={() => runActions(m, [a.id], "deny")}
+                      />
+                    ))}
+
+                  {m.form?.status === "open" && m.actions?.[0] && (
+                    <InterviewCard
+                      form={m.form}
+                      action={m.actions[0]}
+                      running={runningKeys.has(m.id)}
+                      onSubmit={(values) => submitInterview(m, values)}
+                      onCancel={() => cancelInterview(m)}
+                    />
+                  )}
+                  {m.form?.status === "done" && (
+                    <p className={ui.formDone}>✓ Done.</p>
+                  )}
+                  {m.form?.status === "cancelled" && (
+                    <p className={ui.formCancelled}>
+                      Cancelled. Nothing changed.
+                    </p>
+                  )}
+
+                  {waitingIds.length > 1 && !runningKeys.has(m.id) && (
+                    <div className={ui.cardActions}>
+                      <button
+                        type="button"
+                        className={ui.allowBtn}
+                        onClick={() => runActions(m, waitingIds, "allow")}
+                      >
+                        Allow all ({waitingIds.length})
+                      </button>
+                      <button
+                        type="button"
+                        className={ui.denyBtn}
+                        onClick={() => runActions(m, waitingIds, "deny")}
+                      >
+                        Deny all
+                      </button>
+                    </div>
+                  )}
+
+                  {m.id === lastId && !busy && m.choices?.length > 0 && (
+                    <div className={ui.choices}>
+                      {m.choices.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          className={ui.choice}
+                          onClick={() => send(c)}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {busy && (
+              <div className={ui.aiRow}>
+                <div className={ui.typing}>
+                  <span className={ui.dots}>
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  {stepLabel && <span>{stepLabel}</span>}
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} className={ui.bottomAnchor} />
+          </section>
+        )}
 
         {/* ── Chat box ── */}
-        <section className={styles.chatBoxSection}>
+        <section className={`${styles.chatBoxSection} ${ui.composer}`}>
+          {error && (
+            <p className={ui.errorBar} role="alert">
+              {error}
+            </p>
+          )}
+
           {attachments.length > 0 && (
             <div className={styles.attachmentList}>
               {attachments.map((file, index) => (
@@ -334,7 +994,9 @@ export default function ChatPage() {
                   key={`${file.name}-${index}`}
                   type="button"
                   className={styles.attachmentChip}
-                  onClick={() => removeAttachment(index)}
+                  onClick={() =>
+                    setAttachments((prev) => prev.filter((_, i) => i !== index))
+                  }
                   aria-label={`Remove ${file.name}`}
                 >
                   <span>{file.name}</span>
@@ -348,6 +1010,7 @@ export default function ChatPage() {
             <input
               ref={fileInputRef}
               type="file"
+              accept="image/*,application/pdf"
               multiple
               hidden
               onChange={handleFiles}
@@ -356,7 +1019,8 @@ export default function ChatPage() {
               type="button"
               className={styles.addButton}
               onClick={() => fileInputRef.current?.click()}
-              aria-label="Add images or files"
+              aria-label="Attach receipts or files"
+              disabled={busy}
             >
               <Icon d={ICONS.plus} strokeWidth={2} />
             </button>
@@ -364,7 +1028,11 @@ export default function ChatPage() {
             <input
               type="text"
               className={styles.chatInput}
-              placeholder="Ask me anything"
+              placeholder={
+                attachments.length
+                  ? "Add a note, or just send"
+                  : "Ask me anything"
+              }
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -373,7 +1041,7 @@ export default function ChatPage() {
             <button
               type="button"
               className={styles.sendButton}
-              onClick={handleSend}
+              onClick={() => send()}
               disabled={!canSend}
               aria-label="Send message"
             >

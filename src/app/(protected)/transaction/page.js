@@ -7,7 +7,8 @@ import styles from "./transaction.module.css";
 import NavBar from "@/components/layout/NavBar";
 import { useAuth } from "@/context/AuthContext";
 import {
-  recentMonthKeys,
+  getEarliestTransactionDate,
+  monthKeysFromDate,
   subscribeMonthTransactions,
   formatAmount,
   formatDate,
@@ -19,24 +20,31 @@ import AppBar from "@/components/layout/AppBar";
 const RADIUS = 80;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-const monthKeys = recentMonthKeys(12);
-const multipleYears = new Set(monthKeys.map((key) => key.slice(0, 4))).size > 1;
+function getCurrentMonthKey() {
+  const now = new Date();
 
-function getMonthLabel(key) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getMonthLabel(key, multipleYears) {
   const [year, month] = key.split("-");
+
   const label = new Date(Number(year), Number(month) - 1, 1)
     .toLocaleString("en-MY", { month: "short" })
     .toUpperCase();
+
   return multipleYears ? `${label} ${year}` : label;
 }
 
 export default function TransactionPage() {
   const router = useRouter();
-  
+
   const { profile } = useAuth();
   const orgId = profile?.orgId;
 
-  const [month, setMonth] = useState(monthKeys[monthKeys.length - 1]);
+  const [monthKeys, setMonthKeys] = useState([getCurrentMonthKey()]);
+
+  const [month, setMonth] = useState(getCurrentMonthKey());
   const [tab, setTab] = useState("earning");
   const [category, setCategory] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -47,6 +55,34 @@ export default function TransactionPage() {
   const stickyRef = useRef(null);
   const offsetRef = useRef(0);
   const lastScrollYRef = useRef(0);
+
+  useEffect(() => {
+    if (!orgId) return;
+
+    let cancelled = false;
+
+    async function loadMonths() {
+      try {
+        const earliestDate = await getEarliestTransactionDate(orgId);
+
+        if (cancelled) return;
+
+        const keys = monthKeysFromDate(earliestDate);
+
+        setMonthKeys(keys);
+        setMonth(keys[0]);
+        setCategory(null);
+      } catch (error) {
+        console.error("Failed to load transaction months:", error);
+      }
+    }
+
+    loadMonths();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -177,7 +213,10 @@ export default function TransactionPage() {
                   className={key === month ? styles.monthActive : ""}
                   onClick={() => changeMonth(key)}
                 >
-                  {getMonthLabel(key)}
+                  {getMonthLabel(
+                    key,
+                    new Set(monthKeys.map((item) => item.slice(0, 4))).size > 1,
+                  )}
                 </button>
               ))}
             </div>

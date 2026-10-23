@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-// Save as: app/api/posting-schedule/route.js
-
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const DAY_INDEX = Object.fromEntries(DAYS.map((d, i) => [d, i]));
 const LABELS = {
   mon: "Monday",
   tue: "Tuesday",
@@ -13,23 +12,31 @@ const LABELS = {
   sun: "Sunday",
 };
 
-// Used only in week 1, when there is no data yet. A general starting guess, not a rule.
+// Week 1 only, when there is no data yet. A general starting guess, not a rule.
 const STARTER_ORDER = ["tue", "thu", "sat", "wed", "sun", "fri", "mon"];
 
-const RECENCY_DECAY = 0.9; // older weeks still count, just a little less
-const EXPLORE_FACTOR = 0.35; // how strongly to re-test days with few samples
+const RECENCY_DECAY = 0.9;
+const EXPLORE_FACTOR = 0.35;
 const MAX_WEEKS = 520;
 
 const num = (v) =>
-  v === null || v === undefined || v === "" || Number.isNaN(Number(v)) ? null : Number(v);
+  v === null || v === undefined || v === "" || Number.isNaN(Number(v))
+    ? null
+    : Number(v);
 const clamp = (n, lo, hi) => Math.min(Math.max(n, lo), hi);
+const confidence = (n) =>
+  n === 0 ? "untested" : n === 1 ? "low" : n === 2 ? "medium" : "high";
 
-function buildSuggestion(weeks, postsPerWeek) {
-  // Only weeks where at least one day has a number count as data
+function buildSuggestion(weeks, postsPerWeek, { today, done }) {
+  const doneSet = new Set(done);
+  const slots = Math.max(0, postsPerWeek - doneSet.size);
+  const fromIdx = today ? DAY_INDEX[today] : 0;
+  const open = (d) => !doneSet.has(d) && DAY_INDEX[d] >= fromIdx;
+
   const recorded = weeks.filter((w) => DAYS.some((d) => w.views[d] !== null));
 
   if (recorded.length === 0) {
-    const picks = STARTER_ORDER.slice(0, postsPerWeek);
+    const picks = STARTER_ORDER.filter(open).slice(0, slots);
     return {
       mode: "starter",
       weeksUsed: 0,
@@ -38,22 +45,23 @@ function buildSuggestion(weeks, postsPerWeek) {
         label: LABELS[d],
         avg: null,
         samples: 0,
+        confidence: "untested",
         reason:
-          "Starter suggestion based on general social media patterns. It becomes personal once you enter your views.",
+          "Starter suggestion based on general social media patterns. It becomes personal once you log your views.",
       })),
       days: DAYS.map((d) => ({
         day: d,
         label: LABELS[d],
         avg: null,
         samples: 0,
-        suggested: picks.includes(d),
+        confidence: "untested",
+        suggested: picks.includes(d) || doneSet.has(d),
       })),
     };
   }
 
   const latestWeek = Math.max(...recorded.map((w) => w.week));
 
-  // Weighted average views per day across ALL recorded weeks
   const stats = DAYS.map((d) => {
     let sumW = 0;
     let sumWV = 0;
@@ -73,28 +81,31 @@ function buildSuggestion(weeks, postsPerWeek) {
   const overallAvg = tested.reduce((s, x) => s + x.avg, 0) / tested.length;
   const totalWeeks = recorded.length;
 
-  // Days never posted on get tried first. Others: average + a bonus that shrinks as samples grow.
-  const scored = stats.map((s) => {
-    const score =
+  const scored = stats.map((s) => ({
+    ...s,
+    score:
       s.n === 0
         ? Number.POSITIVE_INFINITY
-        : s.avg + overallAvg * EXPLORE_FACTOR * Math.sqrt(Math.log(totalWeeks + 1) / s.n);
-    return { ...s, score };
-  });
+        : s.avg +
+          overallAvg *
+            EXPLORE_FACTOR *
+            Math.sqrt(Math.log(totalWeeks + 1) / s.n),
+  }));
 
   scored.sort((a, b) => {
-    if (a.score === b.score) return STARTER_ORDER.indexOf(a.day) - STARTER_ORDER.indexOf(b.day);
+    if (a.score === b.score)
+      return STARTER_ORDER.indexOf(a.day) - STARTER_ORDER.indexOf(b.day);
     return b.score > a.score ? 1 : -1;
   });
 
-  const picks = scored.slice(0, postsPerWeek);
+  // Only days that are still ahead and not already posted
+  const picks = scored.filter((s) => open(s.day)).slice(0, slots);
 
-  // Which tested days have the best plain average? Used to explain the reason.
   const provenTop = new Set(
     [...tested]
       .sort((a, b) => b.avg - a.avg)
       .slice(0, postsPerWeek)
-      .map((s) => s.day)
+      .map((s) => s.day),
   );
 
   const suggestions = picks.map((s) => {
@@ -111,6 +122,7 @@ function buildSuggestion(weeks, postsPerWeek) {
       label: LABELS[s.day],
       avg: s.avg === null ? null : Math.round(s.avg),
       samples: s.n,
+      confidence: confidence(s.n),
       reason,
     };
   });
@@ -126,7 +138,8 @@ function buildSuggestion(weeks, postsPerWeek) {
       label: LABELS[s.day],
       avg: s.avg === null ? null : Math.round(s.avg),
       samples: s.n,
-      suggested: pickSet.has(s.day),
+      confidence: confidence(s.n),
+      suggested: pickSet.has(s.day) || doneSet.has(s.day),
     })),
   };
 }
@@ -136,7 +149,9 @@ export async function POST(req) {
     const body = await req.json();
 
     const postsPerWeek = clamp(Math.round(num(body.postsPerWeek) ?? 3), 1, 7);
-    const rawWeeks = Array.isArray(body.weeks) ? body.weeks.slice(0, MAX_WEEKS) : [];
+    const rawWeeks = Array.isArray(body.weeks)
+      ? body.weeks.slice(0, MAX_WEEKS)
+      : [];
 
     const weeks = rawWeeks.map((w, idx) => {
       const views = {};
@@ -147,9 +162,23 @@ export async function POST(req) {
       return { week: Math.round(num(w?.week) ?? idx + 1), views };
     });
 
-    return NextResponse.json(buildSuggestion(weeks, postsPerWeek));
+    const today = DAYS.includes(body.today) ? body.today : null;
+    const done = [
+      ...new Set(
+        (Array.isArray(body.done) ? body.done : []).filter((d) =>
+          DAYS.includes(d),
+        ),
+      ),
+    ];
+
+    return NextResponse.json(
+      buildSuggestion(weeks, postsPerWeek, { today, done }),
+    );
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Something went wrong" },
+      { status: 500 },
+    );
   }
 }

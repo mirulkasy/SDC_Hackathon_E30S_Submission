@@ -1,11 +1,13 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
+import { ai } from "@/lib/gemini";
 import { NextResponse } from "next/server";
 
 // Save as: app/api/video-ideas/route.js
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-const MODELS = ["gemini-3.5-flash"];
+const MODELS = [
+  { name: "gemini-3.5-flash", tries: 3 },
+  { name: "gemini-2.5-flash", tries: 2 },
+];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -18,7 +20,12 @@ const DAY_LABELS = {
   sat: "Saturday",
   sun: "Sunday",
 };
-const PLATFORMS = ["TikTok", "Instagram Reels", "YouTube Shorts", "Facebook Reels"];
+const PLATFORMS = [
+  "TikTok",
+  "Instagram Reels",
+  "YouTube Shorts",
+  "Facebook Reels",
+];
 
 const responseSchema = {
   type: Type.OBJECT,
@@ -48,7 +55,16 @@ const responseSchema = {
           hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
           call_to_action: { type: Type.STRING },
         },
-        required: ["day", "title", "video_context", "caption", "duration_seconds", "shots", "hashtags", "call_to_action"],
+        required: [
+          "day",
+          "title",
+          "video_context",
+          "caption",
+          "duration_seconds",
+          "shots",
+          "hashtags",
+          "call_to_action",
+        ],
       },
     },
   },
@@ -81,20 +97,32 @@ async function generate(contents) {
     thinkingConfig: { thinkingBudget: 0 },
   };
 
-  let lastError;
+  let busyError = null;
+  let lastError = null;
   for (const model of MODELS) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < model.tries; attempt++) {
       try {
-        return await ai.models.generateContent({ model, contents, config });
+        return await ai.models.generateContent({
+          model: model.name,
+          contents,
+          config,
+        });
       } catch (err) {
         lastError = err;
-        const retryable = err?.status === 503 || err?.status === 429;
-        if (!retryable) break;
-        await sleep(800 * (attempt + 1));
+        console.warn(
+          `video-ideas: ${model.name} attempt ${attempt + 1} failed:`,
+          err?.status,
+          err?.message,
+        );
+        const busy =
+          err?.status === 503 || err?.status === 429 || err?.status === 500;
+        if (busy) busyError = err;
+        if (!busy) break; // real error: go to the next model instead of waiting
+        await sleep(1500 * (attempt + 1));
       }
     }
   }
-  throw lastError;
+  throw busyError || lastError;
 }
 
 export async function POST(req) {
@@ -102,14 +130,19 @@ export async function POST(req) {
     const body = await req.json();
 
     const topic = String(body.topic ?? "").slice(0, 1000);
-    const platform = PLATFORMS.includes(body.platform) ? body.platform : "TikTok";
+    const platform = PLATFORMS.includes(body.platform)
+      ? body.platform
+      : "TikTok";
 
     // Keep only valid, unique days, in the order they were sent
     const seen = new Set();
     const days = (Array.isArray(body.days) ? body.days : [])
       .map((d) => {
         // Accept "mon", "Mon", "Monday" or the label, in either field
-        const raw = String(d?.day ?? d?.label ?? "").trim().toLowerCase().slice(0, 3);
+        const raw = String(d?.day ?? d?.label ?? "")
+          .trim()
+          .toLowerCase()
+          .slice(0, 3);
         return { day: raw, reason: String(d?.reason ?? "").slice(0, 300) };
       })
       .filter((d) => {
@@ -120,10 +153,16 @@ export async function POST(req) {
       .slice(0, 7);
 
     if (days.length === 0) {
-      console.error("video-ideas: no valid days in request body:", JSON.stringify(body?.days));
+      console.error(
+        "video-ideas: no valid days in request body:",
+        JSON.stringify(body?.days),
+      );
       return NextResponse.json(
-        { error: "No posting days were provided. Check the terminal running npm run dev for details." },
-        { status: 400 }
+        {
+          error:
+            "No posting days were provided. Check the terminal running npm run dev for details.",
+        },
+        { status: 400 },
       );
     }
 
@@ -135,19 +174,25 @@ export async function POST(req) {
         : "The owner did not describe their business or topic. Write general ideas with placeholders.",
     ].join("\n\n");
 
-    const response = await generate([{ role: "user", parts: [{ text: prompt }] }]);
+    const response = await generate([
+      { role: "user", parts: [{ text: prompt }] },
+    ]);
 
     let parsed;
     try {
       parsed = JSON.parse(response.text ?? "{}");
     } catch {
-      return NextResponse.json({ error: "The AI returned an unreadable answer. Please try again." }, { status: 502 });
+      return NextResponse.json(
+        { error: "The AI returned an unreadable answer. Please try again." },
+        { status: 502 },
+      );
     }
 
     // Match ideas back to the requested days so the order is always right
     const byDay = {};
     for (const idea of parsed.ideas ?? []) {
-      if (DAY_KEYS.includes(idea?.day) && !byDay[idea.day]) byDay[idea.day] = idea;
+      if (DAY_KEYS.includes(idea?.day) && !byDay[idea.day])
+        byDay[idea.day] = idea;
     }
 
     const ideas = days
@@ -160,7 +205,9 @@ export async function POST(req) {
           title: String(i.title ?? ""),
           video_context: String(i.video_context ?? ""),
           caption: String(i.caption ?? ""),
-          duration_seconds: Number.isFinite(i.duration_seconds) ? i.duration_seconds : null,
+          duration_seconds: Number.isFinite(i.duration_seconds)
+            ? i.duration_seconds
+            : null,
           shots: Array.isArray(i.shots) ? i.shots : [],
           hashtags: Array.isArray(i.hashtags) ? i.hashtags : [],
           call_to_action: String(i.call_to_action ?? ""),
@@ -168,7 +215,10 @@ export async function POST(req) {
       });
 
     if (ideas.length === 0) {
-      return NextResponse.json({ error: "No ideas were created. Please try again." }, { status: 502 });
+      return NextResponse.json(
+        { error: "No ideas were created. Please try again." },
+        { status: 502 },
+      );
     }
 
     return NextResponse.json({ platform, ideas });
@@ -181,7 +231,7 @@ export async function POST(req) {
           ? "The AI service is busy right now. Please try again in a few seconds."
           : "Something went wrong",
       },
-      { status: busy ? 503 : 500 }
+      { status: busy ? 503 : 500 },
     );
   }
 }
