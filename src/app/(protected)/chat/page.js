@@ -19,6 +19,7 @@ import { messageToText, runAgent } from "@/lib/chatAgent";
 import { MAX_FILES, fileToPayload } from "@/lib/chatFiles";
 import styles from "./chat.module.css";
 import ui from "./chatMessages.module.css";
+import Link from "next/link";
 
 const GREETINGS = [
   "How can we help you?",
@@ -320,7 +321,13 @@ function InterviewCard({ form, action, running, onSubmit, onCancel }) {
           ) : (
             <input
               className={ui.formInput}
-              type={f.type === "number" ? "number" : "text"}
+              type={
+                f.type === "number"
+                  ? "number"
+                  : f.type === "date" || f.key === "dueDate"
+                    ? "date"
+                    : "text"
+              }
               inputMode={f.type === "number" ? "decimal" : undefined}
               min={f.min}
               step={f.type === "number" ? "any" : undefined}
@@ -813,15 +820,33 @@ export default function ChatPage() {
 
       {/* ── Top bar ── */}
       <header className={styles.topBar}>
-        <button
-          type="button"
-          className={styles.iconBtn}
-          onClick={() => setSidebarOpen(true)}
-          aria-label="Open chat history"
-          aria-expanded={sidebarOpen}
-        >
-          <Icon d={ICONS.menu} />
-        </button>
+        <div className={styles.rightTopBar}>
+          <Link type="button" href="/home">
+            <svg
+              className={styles.backIcon}
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="1.5"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
+              />
+            </svg>
+          </Link>
+          <button
+            type="button"
+            className={styles.iconBtn}
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open chat history"
+            aria-expanded={sidebarOpen}
+          >
+            <Icon d={ICONS.menu} />
+          </button>
+        </div>
         <Image
           className={styles.topLogo}
           src="/assets/biscoach/logo.png"

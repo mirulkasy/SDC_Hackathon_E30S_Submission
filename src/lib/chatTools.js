@@ -22,12 +22,7 @@ import {
   updateProduct,
 } from "./inventory";
 import { addTransaction } from "./transactions";
-import {
-  addTicket,
-  getTicket,
-  mapTicket,
-  updateTicketStatus,
-} from "./tickets";
+import { addTicket, getTicket, mapTicket, updateTicketStatus } from "./tickets";
 import { subscribeSummary } from "./summary";
 import { DAY_KEYS, subscribePublicity, weekRange } from "./publicity";
 import {
@@ -43,7 +38,11 @@ import {
 /* Small helpers                                                       */
 /* ------------------------------------------------------------------ */
 
-const norm = (s) => String(s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+const norm = (s) =>
+  String(s ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 const num = (v) => {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
@@ -58,7 +57,9 @@ const validDate = (s) =>
   !Number.isNaN(new Date(`${s}T00:00:00`).getTime());
 const pick = (list, v) => list.find((x) => norm(x) === norm(v)) ?? null;
 const title = (s) =>
-  String(s).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  String(s)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 const rm = (n) => `RM ${Number(n).toFixed(2)}`;
 const bad = (error) => ({ ok: false, error });
 const row = (label, value, from) =>
@@ -123,7 +124,9 @@ const fetchProducts = (orgId) =>
 
 async function getRawTx(orgId, id) {
   if (!id) return null;
-  const snap = await getDoc(doc(db, "organizations", orgId, "transactions", id));
+  const snap = await getDoc(
+    doc(db, "organizations", orgId, "transactions", id),
+  );
   if (!snap.exists() || snap.data().deletedAt) return null;
   const d = snap.data();
   return {
@@ -159,11 +162,14 @@ export const READ_RUNNERS = {
     let list = await fetchProducts(ctx.orgId);
     const q = norm(a.query);
     if (q) {
-      list = list.filter((p) => nameMatches(p.name, q) || norm(p.barcode) === q);
+      list = list.filter(
+        (p) => nameMatches(p.name, q) || norm(p.barcode) === q,
+      );
     }
     const cat = pick(PRODUCT_CATS, a.category);
     if (cat) list = list.filter((p) => p.category === cat);
-    if (a.lowStockOnly) list = list.filter((p) => p.stock <= LOW_STOCK_THRESHOLD);
+    if (a.lowStockOnly)
+      list = list.filter((p) => p.stock <= LOW_STOCK_THRESHOLD);
     const limit = clamp(Math.round(num(a.limit) ?? 15), 1, 30);
     return {
       totalMatches: list.length,
@@ -196,14 +202,20 @@ export const READ_RUNNERS = {
     let rows = snap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
       .filter((r) => !r.deletedAt && r.status !== "pending_review");
-    if (a.type === "in" || a.type === "out") rows = rows.filter((r) => r.type === a.type);
+    if (a.type === "in" || a.type === "out")
+      rows = rows.filter((r) => r.type === a.type);
     const cat = pick(TX_CATEGORIES, a.category);
     if (cat) rows = rows.filter((r) => r.category === cat);
-    if (norm(a.query)) rows = rows.filter((r) => nameMatches(r.description, a.query));
+    if (norm(a.query))
+      rows = rows.filter((r) => nameMatches(r.description, a.query));
     rows.sort((x, y2) => tsDate(y2.date) - tsDate(x.date));
 
     const sum = (type) =>
-      r2(rows.filter((r) => r.type === type).reduce((s, r) => s + (r.amount ?? 0), 0) / 100);
+      r2(
+        rows
+          .filter((r) => r.type === type)
+          .reduce((s, r) => s + (r.amount ?? 0), 0) / 100,
+      );
     const limit = clamp(Math.round(num(a.limit) ?? 20), 1, 40);
     return {
       month,
@@ -255,7 +267,9 @@ export const READ_RUNNERS = {
       stock: {
         totalProducts: products.length,
         outOfStock: products.filter((p) => p.stock <= 0).length,
-        lowStock: products.filter((p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD).length,
+        lowStock: products.filter(
+          (p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD,
+        ).length,
         valueAtCost: r2(products.reduce((t, p) => t + p.cost * p.stock, 0)),
       },
     };
@@ -265,7 +279,9 @@ export const READ_RUNNERS = {
     const snap = await getDocs(
       collection(db, "organizations", ctx.orgId, "checklist"),
     );
-    const done = new Set(snap.docs.filter((d) => d.data().done).map((d) => d.id));
+    const done = new Set(
+      snap.docs.filter((d) => d.data().done).map((d) => d.id),
+    );
     const groups = CHECKLIST.map((g) => ({
       group: g.title,
       done: g.items.filter((i) => done.has(i.id)).length,
@@ -282,9 +298,13 @@ export const READ_RUNNERS = {
   },
 
   async get_publicity(a, ctx) {
-    const { state, weeks } = await once((cb) => subscribePublicity(ctx.orgId, cb));
-    if (!state) return { started: false, note: "The user has not opened Publicity yet." };
-    const total = (v) => DAY_KEYS.reduce((s, k) => s + (Number(v?.[k]) || 0), 0);
+    const { state, weeks } = await once((cb) =>
+      subscribePublicity(ctx.orgId, cb),
+    );
+    if (!state)
+      return { started: false, note: "The user has not opened Publicity yet." };
+    const total = (v) =>
+      DAY_KEYS.reduce((s, k) => s + (Number(v?.[k]) || 0), 0);
     const current = weeks[state.week];
     const recentWeeks = Object.keys(weeks)
       .map(Number)
@@ -292,7 +312,9 @@ export const READ_RUNNERS = {
       .slice(0, 3)
       .map((n) => {
         const v = weeks[n].views;
-        const logged = DAY_KEYS.filter((k) => v[k] !== null && v[k] !== undefined);
+        const logged = DAY_KEYS.filter(
+          (k) => v[k] !== null && v[k] !== undefined,
+        );
         const best = [...logged].sort((x, y) => v[y] - v[x])[0] ?? null;
         return {
           week: n,
@@ -308,7 +330,10 @@ export const READ_RUNNERS = {
       platform: state.platform,
       postsPerWeek: state.postsPerWeek,
       topic: state.topic || null,
-      plannedDays: (current?.planned ?? []).map((p) => ({ day: p.day, reason: p.reason })),
+      plannedDays: (current?.planned ?? []).map((p) => ({
+        day: p.day,
+        reason: p.reason,
+      })),
       recentWeeks,
     };
   },
@@ -321,7 +346,8 @@ export const READ_RUNNERS = {
       ),
     );
     let list = snap.docs.map((d) => mapTicket(d.id, d.data()));
-    if (pick(TICKET_STATS, a.status)) list = list.filter((t) => t.status === a.status);
+    if (pick(TICKET_STATS, a.status))
+      list = list.filter((t) => t.status === a.status);
     if (norm(a.query)) list = list.filter((t) => nameMatches(t.title, a.query));
     const limit = clamp(Math.round(num(a.limit) ?? 15), 1, 30);
     return {
@@ -340,7 +366,8 @@ export const READ_RUNNERS = {
   },
 
   async scan_receipts(a, ctx) {
-    if (!ctx.files?.length) return { error: "No files are attached to this message." };
+    if (!ctx.files?.length)
+      return { error: "No files are attached to this message." };
     const res = await fetch("/api/receipt-processing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -351,7 +378,8 @@ export const READ_RUNNERS = {
     const json = await res.json().catch(() => ({}));
     if (!res.ok) return { error: json.error || "Could not read the receipt." };
     const docs = json.documents || [];
-    if (docs.length === 0) return { error: "No receipt was found in the files." };
+    if (docs.length === 0)
+      return { error: "No receipt was found in the files." };
     return {
       receipts: docs.map((d, i) => ({
         receiptNo: i + 1,
@@ -360,7 +388,9 @@ export const READ_RUNNERS = {
         total: d.total_amount,
         tax: d.tax_amount,
         suggestedCategory: RECEIPT_CATEGORY[d.category] || "other",
-        items: (d.line_items || []).slice(0, 6).map((li) => `${li.quantity}x ${li.name}`),
+        items: (d.line_items || [])
+          .slice(0, 6)
+          .map((li) => `${li.quantity}x ${li.name}`),
         totalUnreadable: !d.total_amount,
       })),
     };
@@ -393,7 +423,11 @@ const PRODUCT_LABEL = {
   barcode: "Barcode",
 };
 const productFmt = (k, v) =>
-  k === "cost" || k === "price" ? rm(v) : v === "" || v == null ? "-" : String(v);
+  k === "cost" || k === "price"
+    ? rm(v)
+    : v === "" || v == null
+      ? "-"
+      : String(v);
 
 const TX_LABEL = {
   type: "Type",
@@ -425,7 +459,9 @@ const TICKET_LABEL = {
   status: "Status",
 };
 const ticketFmt = (k, v) =>
-  k === "category" || k === "status" || k === "priority" ? title(v) : String(v ?? "-").slice(0, 80);
+  k === "category" || k === "status" || k === "priority"
+    ? title(v)
+    : String(v ?? "-").slice(0, 80);
 
 const changedKeys = (cur, patch) =>
   Object.keys(patch).filter((k) => String(patch[k]) !== String(cur[k] ?? ""));
@@ -446,16 +482,49 @@ export const WRITE_TOOLS = {
       const miss = [];
       if (!name) miss.push("name");
       if (!category) miss.push("category (Food, Drinks or Household)");
-      if (stock === null || stock < 0 || !Number.isInteger(stock)) miss.push("stock (whole number)");
+      if (stock === null || stock < 0 || !Number.isInteger(stock))
+        miss.push("stock (whole number)");
       if (cost === null || cost < 0) miss.push("cost");
       if (price === null || price < 0) miss.push("price");
-      if (category === "Food" && !validDate(dueDate)) miss.push("dueDate (YYYY-MM-DD)");
-      if (miss.length) return bad(`Missing or invalid: ${miss.join(", ")}. Ask the user with ask_user.`);
+      if (category === "Food" && !validDate(dueDate))
+        miss.push("dueDate (YYYY-MM-DD)");
+      if (miss.length)
+        return bad(
+          `Missing or invalid: ${miss.join(", ")}. Ask the user with ask_user.`,
+        );
 
       const barcode = String(a.barcode ?? "").trim();
       const warnings = [];
-      const dupe = (await fetchProducts(ctx.orgId)).find((p) => norm(p.name) === norm(name));
-      if (dupe) warnings.push(`"${dupe.name}" already exists (${dupe.stock} in stock). Allowing adds a second product.`);
+
+      const all = await fetchProducts(ctx.orgId);
+
+      // New: catch "roti" vs "Roti Canai" before creating a duplicate
+      const q = norm(name);
+      const tokens = q.split(" ").filter(Boolean);
+      const similar = all.filter((p) => {
+        const n = norm(p.name);
+        return n !== q && (n.includes(q) || tokens.every((t) => n.includes(t)));
+      });
+      if (similar.length === 1) {
+        const s = similar[0];
+        return bad(
+          `A similar product already exists: "${s.name}" (stock ${s.stock}, price RM ${s.price}). ` +
+            `Do NOT add a new one. Ask the user with ask_user whether they mean "${s.name}"; ` +
+            `if yes, use update_product with id "${s.id}" and stockChange, then stop.`,
+        );
+      }
+      if (similar.length > 1) {
+        return bad(
+          `Several similar products exist: ${similar.map((p) => `"${p.name}" (id ${p.id})`).join(", ")}. ` +
+            `Use ask_user to ask which one the user means, then update_product with stockChange.`,
+        );
+      }
+
+      const dupe = all.find((p) => norm(p.name) === norm(name));
+      if (dupe)
+        warnings.push(
+          `"${dupe.name}" already exists (${dupe.stock} in stock). Allowing adds a second product.`,
+        );
       if (price < cost) warnings.push("The price is lower than the cost.");
 
       const rows = [
@@ -485,7 +554,8 @@ export const WRITE_TOOLS = {
   update_product: {
     async prepare(a, ctx) {
       const cur = a.id ? await getProduct(ctx.orgId, String(a.id)) : null;
-      if (!cur) return bad("Product not found. Use search_products to get a valid id.");
+      if (!cur)
+        return bad("Product not found. Use search_products to get a valid id.");
 
       const patch = {};
       if (a.name !== undefined) {
@@ -500,13 +570,16 @@ export const WRITE_TOOLS = {
       }
       if (a.stock !== undefined) {
         const s = num(a.stock);
-        if (s === null || s < 0 || !Number.isInteger(s)) return bad("stock must be a whole number of 0 or more.");
+        if (s === null || s < 0 || !Number.isInteger(s))
+          return bad("stock must be a whole number of 0 or more.");
         patch.stock = s;
       }
       if (a.stockChange !== undefined) {
         const d = num(a.stockChange);
-        if (d === null || !Number.isInteger(d)) return bad("stockChange must be a whole number.");
-        if (cur.stock + d < 0) return bad(`Stock would go below 0 (current stock is ${cur.stock}).`);
+        if (d === null || !Number.isInteger(d))
+          return bad("stockChange must be a whole number.");
+        if (cur.stock + d < 0)
+          return bad(`Stock would go below 0 (current stock is ${cur.stock}).`);
         patch.stock = cur.stock + d;
       }
       for (const k of ["cost", "price"]) {
@@ -516,7 +589,8 @@ export const WRITE_TOOLS = {
         patch[k] = r2(n);
       }
       if (a.dueDate !== undefined) {
-        if (!validDate(String(a.dueDate))) return bad("dueDate must be YYYY-MM-DD.");
+        if (!validDate(String(a.dueDate)))
+          return bad("dueDate must be YYYY-MM-DD.");
         patch.dueDate = String(a.dueDate);
       }
       if (a.barcode !== undefined) patch.barcode = String(a.barcode).trim();
@@ -551,13 +625,18 @@ export const WRITE_TOOLS = {
   delete_product: {
     async prepare(a, ctx) {
       const cur = a.id ? await getProduct(ctx.orgId, String(a.id)) : null;
-      if (!cur) return bad("Product not found. Use search_products to get a valid id.");
+      if (!cur)
+        return bad("Product not found. Use search_products to get a valid id.");
       return {
         ok: true,
         kind: "delete",
         title: `Delete product: ${cur.name}`,
         args: { id: cur.id },
-        rows: [row("Category", cur.category), row("Stock", cur.stock), row("Price", rm(cur.price))],
+        rows: [
+          row("Category", cur.category),
+          row("Stock", cur.stock),
+          row("Price", rm(cur.price)),
+        ],
         warnings: cur.stock > 0 ? [`It still has ${cur.stock} in stock.`] : [],
       };
     },
@@ -583,11 +662,15 @@ export const WRITE_TOOLS = {
       if (!description) miss.push("description");
       if (!validDate(date)) miss.push("date (YYYY-MM-DD)");
       if (!paymentMethod) miss.push("paymentMethod");
-      if (miss.length) return bad(`Missing or invalid: ${miss.join(", ")}. Ask the user with ask_user.`);
+      if (miss.length)
+        return bad(
+          `Missing or invalid: ${miss.join(", ")}. Ask the user with ask_user.`,
+        );
 
       const note = String(a.note ?? "").trim();
       const warnings = [];
-      if (date > isoDay(new Date())) warnings.push("This date is in the future.");
+      if (date > isoDay(new Date()))
+        warnings.push("This date is in the future.");
       const rows = [
         row("Type", txFmt("type", type)),
         row("Amount", rm(amount)),
@@ -600,13 +683,25 @@ export const WRITE_TOOLS = {
         ok: true,
         kind: "add",
         title: `${type === "in" ? "Record earning" : "Record spending"}: ${description}`,
-        args: { type, amount: r2(amount), category, description, date, paymentMethod, note },
+        args: {
+          type,
+          amount: r2(amount),
+          category,
+          description,
+          date,
+          paymentMethod,
+          note,
+        },
         rows,
         warnings,
       };
     },
     async run(a, ctx) {
-      await addTransaction({ orgId: ctx.orgId, user: ctx.user, transaction: a });
+      await addTransaction({
+        orgId: ctx.orgId,
+        user: ctx.user,
+        transaction: a,
+      });
       return { note: "Transaction recorded." };
     },
   },
@@ -614,11 +709,15 @@ export const WRITE_TOOLS = {
   update_transaction: {
     async prepare(a, ctx) {
       const cur = await getRawTx(ctx.orgId, a.id ? String(a.id) : "");
-      if (!cur) return bad("Transaction not found. Use list_transactions to get a valid id.");
+      if (!cur)
+        return bad(
+          "Transaction not found. Use list_transactions to get a valid id.",
+        );
 
       const patch = {};
       if (a.type !== undefined) {
-        if (a.type !== "in" && a.type !== "out") return bad("type must be in or out.");
+        if (a.type !== "in" && a.type !== "out")
+          return bad("type must be in or out.");
         patch.type = a.type;
       }
       if (a.amount !== undefined) {
@@ -662,16 +761,19 @@ export const WRITE_TOOLS = {
       const cur = await getRawTx(ctx.orgId, a.id);
       if (!cur) throw new Error("This transaction no longer exists.");
       const m = { ...cur, ...a.patch };
-      await updateDoc(doc(db, "organizations", ctx.orgId, "transactions", a.id), {
-        type: m.type,
-        amount: Math.round(m.amount * 100),
-        category: m.category,
-        description: m.description,
-        date: Timestamp.fromDate(new Date(`${m.date}T00:00:00`)),
-        paymentMethod: m.paymentMethod,
-        note: m.note,
-        updatedAt: serverTimestamp(),
-      });
+      await updateDoc(
+        doc(db, "organizations", ctx.orgId, "transactions", a.id),
+        {
+          type: m.type,
+          amount: Math.round(m.amount * 100),
+          category: m.category,
+          description: m.description,
+          date: Timestamp.fromDate(new Date(`${m.date}T00:00:00`)),
+          paymentMethod: m.paymentMethod,
+          note: m.note,
+          updatedAt: serverTimestamp(),
+        },
+      );
       return { note: "Transaction updated." };
     },
   },
@@ -679,7 +781,10 @@ export const WRITE_TOOLS = {
   delete_transaction: {
     async prepare(a, ctx) {
       const cur = await getRawTx(ctx.orgId, a.id ? String(a.id) : "");
-      if (!cur) return bad("Transaction not found. Use list_transactions to get a valid id.");
+      if (!cur)
+        return bad(
+          "Transaction not found. Use list_transactions to get a valid id.",
+        );
       return {
         ok: true,
         kind: "delete",
@@ -695,10 +800,13 @@ export const WRITE_TOOLS = {
     },
     async run(a, ctx) {
       // Soft delete, same as the rest of the app (deletedAt is filtered out everywhere)
-      await updateDoc(doc(db, "organizations", ctx.orgId, "transactions", a.id), {
-        deletedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      await updateDoc(
+        doc(db, "organizations", ctx.orgId, "transactions", a.id),
+        {
+          deletedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+      );
       return { note: "Transaction deleted." };
     },
   },
@@ -711,7 +819,8 @@ export const WRITE_TOOLS = {
       const miss = [];
       if (!ticketTitle) miss.push("title");
       if (!description) miss.push("description");
-      if (miss.length) return bad(`Missing: ${miss.join(", ")}. Ask the user with ask_user.`);
+      if (miss.length)
+        return bad(`Missing: ${miss.join(", ")}. Ask the user with ask_user.`);
       const category = pick(TICKET_CATS, a.category) ?? "other";
       const priority = pick(TICKET_PRIOS, a.priority) ?? "medium";
       const transactionId = a.transactionId ? String(a.transactionId) : null;
@@ -719,7 +828,13 @@ export const WRITE_TOOLS = {
         ok: true,
         kind: "add",
         title: `Create report: ${ticketTitle}`,
-        args: { title: ticketTitle, description, category, priority, transactionId },
+        args: {
+          title: ticketTitle,
+          description,
+          category,
+          priority,
+          transactionId,
+        },
         rows: [
           row("Category", title(category)),
           row("Priority", title(priority)),
@@ -737,7 +852,8 @@ export const WRITE_TOOLS = {
   update_ticket: {
     async prepare(a, ctx) {
       const cur = a.id ? await getTicket(ctx.orgId, String(a.id)) : null;
-      if (!cur) return bad("Report not found. Use list_tickets to get a valid id.");
+      if (!cur)
+        return bad("Report not found. Use list_tickets to get a valid id.");
 
       const patch = {};
       if (a.title !== undefined) {
@@ -763,7 +879,10 @@ export const WRITE_TOOLS = {
       if (a.status !== undefined) {
         const s = pick(TICKET_STATS, a.status);
         if (!s) return bad("Invalid status.");
-        if (!ctx.isOwner) return bad("Only the owner can change a report's status. Tell the user.");
+        if (!ctx.isOwner)
+          return bad(
+            "Only the owner can change a report's status. Tell the user.",
+          );
         patch.status = s;
       }
       const keys = changedKeys(cur, patch);
@@ -785,16 +904,19 @@ export const WRITE_TOOLS = {
           updatedAt: serverTimestamp(),
         });
       }
-      if (status) await updateTicketStatus({ orgId: ctx.orgId, ticketId: a.id, status });
+      if (status)
+        await updateTicketStatus({ orgId: ctx.orgId, ticketId: a.id, status });
       return { note: "Report updated." };
     },
   },
 
   delete_ticket: {
     async prepare(a, ctx) {
-      if (!ctx.isOwner) return bad("Only the owner can delete reports. Tell the user.");
+      if (!ctx.isOwner)
+        return bad("Only the owner can delete reports. Tell the user.");
       const cur = a.id ? await getTicket(ctx.orgId, String(a.id)) : null;
-      if (!cur) return bad("Report not found. Use list_tickets to get a valid id.");
+      if (!cur)
+        return bad("Report not found. Use list_tickets to get a valid id.");
       return {
         ok: true,
         kind: "delete",

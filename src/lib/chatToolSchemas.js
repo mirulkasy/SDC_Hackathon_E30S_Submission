@@ -79,7 +79,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: "search_products",
     description:
-      "Find products in inventory. Use it to look up ids, stock, cost and price. Call it before updating or deleting a product.",
+      "Find products in inventory. Use it to look up ids, stock, cost and price. ALWAYS call it before add_product and before any stock change, to match the user's product name against what already exists.",
     parameters: obj({
       query: str("Product name or part of it, or an exact barcode."),
       category: str("Filter by category.", PRODUCT_CATS),
@@ -148,7 +148,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: "add_product",
     description:
-      "Propose adding a new product. ALWAYS call this when the user wants to add a product, even if they gave no details at all (call it with empty arguments). Pass only the fields the user actually stated. NEVER ask the user for missing fields in chat and never invent values: the app shows a form for whatever is missing.",
+      "Propose adding a new product. ALWAYS call this when the user wants to add a product, even if they gave no details at all (call it with empty arguments). Pass only the fields the user actually stated. NEVER ask the user for missing fields in chat and never invent values: the app shows a form for whatever is missing. Call search_products first: if a similar product already exists, do NOT add — use update_product instead.",
     parameters: obj({
       name: str("Product name, only if the user said it."),
       category: str(

@@ -2,56 +2,222 @@
     background-color: white;
     position: fixed;
     bottom: 0;
-    width: 100svw;
-
+    left: 0;
+    width: 100%;
+    z-index: 100;
     box-sizing: border-box;
     padding: 10px 20px 15px;
-
     display: flex;
     gap: 10px;
     justify-content: space-around;
-
-    box-shadow: 0px -2px 18px rgba(0, 0, 0, 0.05);
+    align-items: center;
+    box-shadow: 0 -2px 18px rgba(0, 0, 0, 0.05);
 }
 
 .navAction {
     position: relative;
-    aspect-ratio: 1/1;
+    flex: 0 1 40px;
+    aspect-ratio: 1 / 1;
     width: 40px;
+    min-width: 0;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 2px;
+    color: inherit;
+    text-decoration: none;
     transition: var(--animation-apple);
 }
 
 .navActionLogo {
     width: 26px;
+    height: 26px;
+}
+
+.navAction p {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    padding-bottom: 2px;
 }
 
 .navActionActive {
-    transform: translateY(-15%);
+    transform: translateY(-5%);
     color: var(--primary);
     transition: var(--animation-apple);
 }
 
-.navActionActive::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    width: 50%;
-    height: 3px;
-    background-color: var(--primary);
-    transform: translateX(-50%);
+.navActionActive p {
+    border-bottom: 2px solid var(--primary);
 }
 
 .navActionMid {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border: 0;
+    padding: 0;
     border-radius: 50%;
     background-color: var(--primary);
-    transform: scale(1.5) translateY(-50%);
+    color: white;
+    transform: scale(1.5) translateY(-40%);
+    cursor: pointer;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .navActionMid .navActionLogo {
-    filter: invert(1) brightness(150%) !important;
     width: 20px;
+    height: 20px;
+    filter: brightness(0) invert(1);
+}
+
+.navActionMid.navActionActive {
+    color: white;
+}
+
+/* Full-screen backdrop and background blur */
+.radialOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+    background: rgba(25, 27, 34, 0.46);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    animation: radialFadeIn 160ms ease-out;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.radialContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    pointer-events: none;
+}
+
+/* Compact label */
+.radialLabel {
+    min-height: 64px;
+    margin-bottom: 12px;
+    text-align: center;
+    color: white;
+    pointer-events: none;
+}
+
+.radialLabel h2 {
+    margin: 0 0 4px;
+    font-size: 23px;
+    line-height: 1.2;
+    font-weight: 500;
+    letter-spacing: -0.4px;
+}
+
+.radialLabel p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+/* Three-option radial layout */
+.radialMenu {
+    position: relative;
+    width: 240px;
+    height: 190px;
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
+.radialOption {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 68px;
+    height: 68px;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 50%;
+    background: var(--option-color);
+    color: white;
+    cursor: pointer;
+    pointer-events: auto;
+    transform: scale(0.95);
+    transition:
+        transform 150ms ease,
+        box-shadow 150ms ease,
+        opacity 150ms ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.radialLeft {
+    left: 0;
+    top: 62px;
+}
+
+.radialTop {
+    left: 86px;
+    top: 0;
+}
+
+.radialRight {
+    right: 0;
+    top: 62px;
+}
+
+/* Highlight the option under the user's finger */
+.radialOption.radialSelected {
+    z-index: 2;
+    transform: scale(1.08);
+    box-shadow:
+        0 0 0 5px rgba(255, 255, 255, 0.22),
+        0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.radialOption:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 4px;
+}
+
+@keyframes radialFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@media (max-width: 360px) {
+    .NavBarWrapper {
+        gap: 6px;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .radialMenu {
+        transform: scale(0.92);
+        transform-origin: top center;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .radialOverlay,
+    .radialOption {
+        animation: none;
+        transition: none;
+    }
 }

@@ -3299,6 +3299,16 @@ export default function BarcodePage() {
   background-color: #f5f7f6;
 }
 
+.rightTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+}
+
+.rightTopBar .iconBtn {
+  margin-left: 0 !important;
+}
+
 .topBar .iconBtn:last-child {
   margin-left: auto;
 }
@@ -3322,6 +3332,11 @@ export default function BarcodePage() {
 
 .iconBtn:active {
   background-color: rgba(11, 61, 46, 0.1);
+}
+
+.backIcon {
+  width: 22px;
+  height: 22px;
 }
 
 /* ── Page root ── */
@@ -3468,7 +3483,7 @@ export default function BarcodePage() {
   flex: 1;
   min-width: 0;
   height: auto;
-  padding: 0;
+  padding: 0 5px;
   border: none;
   outline: none;
   background: transparent;
@@ -4196,6 +4211,7 @@ import { messageToText, runAgent } from "@/lib/chatAgent";
 import { MAX_FILES, fileToPayload } from "@/lib/chatFiles";
 import styles from "./chat.module.css";
 import ui from "./chatMessages.module.css";
+import Link from "next/link";
 
 const GREETINGS = [
   "How can we help you?",
@@ -4497,7 +4513,13 @@ function InterviewCard({ form, action, running, onSubmit, onCancel }) {
           ) : (
             <input
               className={ui.formInput}
-              type={f.type === "number" ? "number" : "text"}
+              type={
+                f.type === "number"
+                  ? "number"
+                  : f.type === "date" || f.key === "dueDate"
+                    ? "date"
+                    : "text"
+              }
               inputMode={f.type === "number" ? "decimal" : undefined}
               min={f.min}
               step={f.type === "number" ? "any" : undefined}
@@ -4990,15 +5012,33 @@ export default function ChatPage() {
 
       {/* ── Top bar ── */}
       <header className={styles.topBar}>
-        <button
-          type="button"
-          className={styles.iconBtn}
-          onClick={() => setSidebarOpen(true)}
-          aria-label="Open chat history"
-          aria-expanded={sidebarOpen}
-        >
-          <Icon d={ICONS.menu} />
-        </button>
+        <div className={styles.rightTopBar}>
+          <Link type="button" href="/home">
+            <svg
+              className={styles.backIcon}
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="1.5"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
+              />
+            </svg>
+          </Link>
+          <button
+            type="button"
+            className={styles.iconBtn}
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open chat history"
+            aria-expanded={sidebarOpen}
+          >
+            <Icon d={ICONS.menu} />
+          </button>
+        </div>
         <Image
           className={styles.topLogo}
           src="/assets/biscoach/logo.png"
@@ -5963,14 +6003,14 @@ export default function HomePage() {
 <file path="app/(protected)/inventory/[id]/page.js">
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
 import styles from "./subInventory.module.css";
 import CustomInput from "@/components/input/CustomInput";
 import CustomSelect from "@/components/input/CustomSelect";
 import AppBar from "@/components/layout/AppBar";
 import { useAuth } from "@/context/AuthContext";
-import { getProduct, updateProduct } from "@/lib/inventory";
+import { getProduct, updateProduct, deleteProduct } from "@/lib/inventory";
 
 const CATEGORY_OPTIONS = ["Food", "Drinks", "Household"].map((c) => ({
   value: c,
@@ -6047,6 +6087,11 @@ export default function SubInventoryPage() {
   const [suggestions, setSuggestions] = useState(null);
   const [sugLoading, setSugLoading] = useState(false);
   const [sugError, setSugError] = useState("");
+
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     if (!orgId || !id) return;
@@ -6127,6 +6172,31 @@ export default function SubInventoryPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [costNum, targetMargin]);
+
+  const handleDelete = async () => {
+    if (deleting || !orgId || !id) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${saved?.name ?? form?.name}"?`,
+    );
+
+    if (!confirmed) return;
+
+    setDeleting(true);
+
+    try {
+      await deleteProduct({
+        orgId,
+        productId: id,
+      });
+
+      router.push("/inventory");
+    } catch (error) {
+      console.error("Product deletion failed:", error);
+      window.alert("Failed to delete product. Please try again.");
+      setDeleting(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -6235,7 +6305,77 @@ export default function SubInventoryPage() {
 
   return (
     <>
-      <AppBar title={form.name || saved.name} />
+      <AppBar
+        title={form.name || saved.name}
+        actionMenu={
+          <div ref={menuRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-label="More options"
+              aria-expanded={menuOpen}
+              style={{
+                color: "white",
+                background: "transparent",
+                border: "none",
+                padding: "4px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="5" r="1.8" />
+                <circle cx="12" cy="12" r="1.8" />
+                <circle cx="12" cy="19" r="1.8" />
+              </svg>
+            </button>
+
+            {menuOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  right: "8px",
+                  minWidth: "160px",
+                  background: "white",
+                  color: "#222",
+                  borderRadius: "10px",
+                  padding: "6px",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
+                  zIndex: 100,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  style={{
+                    boxSizing: "border-box",
+                    width: "100%",
+                    padding: "12px",
+                    border: "none",
+                    background: "transparent",
+                    color: "#dc2626",
+                    textAlign: "left",
+                    cursor: deleting ? "wait" : "pointer",
+                    fontSize: "var(--fontsize-13)",
+                    fontWeight: "600",
+                  }}
+                >
+                  {deleting ? "Deleting..." : "Delete product"}
+                </button>
+              </div>
+            )}
+          </div>
+        }
+      />
       <main className={styles.subInventoryPage}>
         {/* ── Section 1: Top Header ── */}
         <section className={styles.topWrapper}>
@@ -7696,35 +7836,44 @@ export default function InventoryPage() {
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { signOut } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { collection, doc, onSnapshot } from "firebase/firestore";
+
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { BUSINESS_TYPES } from "@/lib/businessTypes";
 import { updateOrganization, updateUserName } from "@/lib/profile";
 import NavBar from "@/components/layout/NavBar";
-import styles from "./profile.module.css";
 import AppBar from "@/components/layout/AppBar";
+import styles from "./profile.module.css";
 
 export default function ProfilePage() {
   const { user, profile } = useAuth();
+
+  const [activeTab, setActiveTab] = useState("profile");
   const [org, setOrg] = useState(null);
+  const [members, setMembers] = useState([]);
   const [copied, setCopied] = useState(false);
 
-  // null = untouched, so the field always shows the latest saved value
   const [nameDraft, setNameDraft] = useState(null);
   const [orgDraft, setOrgDraft] = useState(null);
+
   const [savingName, setSavingName] = useState(false);
   const [savingOrg, setSavingOrg] = useState(false);
+
   const [nameError, setNameError] = useState("");
   const [orgError, setOrgError] = useState("");
 
   const orgId = profile?.orgId;
   const isOwner = profile?.role === "owner";
 
+  // Listen to organization details.
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId) {
+      setOrg(null);
+      return;
+    }
+
     return onSnapshot(
       doc(db, "organizations", orgId),
       (snap) => setOrg(snap.exists() ? snap.data() : null),
@@ -7732,8 +7881,40 @@ export default function ProfilePage() {
     );
   }, [orgId]);
 
+  // Listen to every member in the organization.
+  useEffect(() => {
+    if (!orgId) {
+      setMembers([]);
+      return;
+    }
+
+    return onSnapshot(
+      collection(db, "organizations", orgId, "members"),
+      (snap) => {
+        const list = snap.docs.map((memberDoc) => ({
+          id: memberDoc.id,
+          ...memberDoc.data(),
+        }));
+
+        // Show the owner first, then sort other members by name.
+        list.sort((a, b) => {
+          if (a.role === "owner") return -1;
+          if (b.role === "owner") return 1;
+
+          return (a.name || a.email || "").localeCompare(
+            b.name || b.email || "",
+          );
+        });
+
+        setMembers(list);
+      },
+      (err) => console.error("Members listener failed:", err),
+    );
+  }, [orgId]);
+
   useEffect(() => {
     if (!copied) return;
+
     const timer = setTimeout(() => setCopied(false), 2000);
     return () => clearTimeout(timer);
   }, [copied]);
@@ -7744,24 +7925,29 @@ export default function ProfilePage() {
 
   const orgNameValue = orgDraft?.name ?? org?.name ?? "";
   const businessTypeValue = orgDraft?.businessType ?? org?.businessType ?? "";
+
   const orgDirty =
     orgDraft !== null &&
     (orgNameValue.trim() !== (org?.name ?? "") ||
       businessTypeValue !== (org?.businessType ?? ""));
 
   const typeLabel =
-    BUSINESS_TYPES.find((t) => t.id === org?.businessType)?.label ?? "-";
+    BUSINESS_TYPES.find((type) => type.id === org?.businessType)?.label ?? "-";
 
-  const editOrg = (patch) =>
-    setOrgDraft((d) => ({
+  const editOrg = (patch) => {
+    if (!isOwner) return;
+
+    setOrgDraft((draft) => ({
       name: orgNameValue,
       businessType: businessTypeValue,
-      ...d,
+      ...draft,
       ...patch,
     }));
+  };
 
   const handleCopy = async () => {
     if (!org?.inviteCode) return;
+
     try {
       await navigator.clipboard.writeText(org.inviteCode);
       setCopied(true);
@@ -7772,15 +7958,26 @@ export default function ProfilePage() {
 
   const handleSaveName = async (e) => {
     e.preventDefault();
-    if (!nameValue.trim()) return setNameError("Name is required.");
+
+    if (!nameValue.trim()) {
+      setNameError("Name is required.");
+      return;
+    }
+
     setNameError("");
     setSavingName(true);
+
     try {
-      await updateUserName({ user, orgId, name: nameValue.trim() });
+      await updateUserName({
+        user,
+        orgId,
+        name: nameValue.trim(),
+      });
+
       setNameDraft(null);
     } catch (err) {
       console.error(err);
-      setNameError("Couldn’t save your name. Please try again.");
+      setNameError("Could not save your name. Please try again.");
     } finally {
       setSavingName(false);
     }
@@ -7788,181 +7985,317 @@ export default function ProfilePage() {
 
   const handleSaveOrg = async (e) => {
     e.preventDefault();
-    if (!orgNameValue.trim())
-      return setOrgError("Organization name is required.");
-    if (!businessTypeValue) return setOrgError("Pick a business type.");
+
+    // Do not allow non-owners to save organization details.
+    if (!isOwner) return;
+
+    if (!orgNameValue.trim()) {
+      setOrgError("Organization name is required.");
+      return;
+    }
+
+    if (!businessTypeValue) {
+      setOrgError("Pick a business type.");
+      return;
+    }
+
     setOrgError("");
     setSavingOrg(true);
+
     try {
       await updateOrganization({
         orgId,
         name: orgNameValue.trim(),
         businessType: businessTypeValue,
       });
+
       setOrgDraft(null);
     } catch (err) {
       console.error(err);
-      setOrgError("Couldn’t save the organization. Please try again.");
+      setOrgError("Could not save the organization. Please try again.");
     } finally {
       setSavingOrg(false);
     }
   };
 
-  const initial = (profile?.name ?? "?").trim().charAt(0).toUpperCase();
-
   return (
     <>
       <AppBar title="Profile" />
+
       <main className={styles.profilePage}>
-        {/* ── Section 1: Organization code banner ── */}
-        <section className={styles.codeWrapper}>
-          <div className={styles.codeBanner}>
-            <div className={styles.codeInfo}>
-              <h1>Organization Code</h1>
-              <p>
-                {isOwner
-                  ? "Share the organization code above so your team can join."
-                  : "Only the owner can edit organization details."}
-              </p>
-              <h2>{org?.inviteCode ?? "--------"}</h2>
-            </div>
-            <button
-              type="button"
-              className={styles.copyBtn}
-              onClick={handleCopy}
-              disabled={!org?.inviteCode}
-            >
-              {copied ? "Copied" : "Copy"}
-            </button>
-          </div>
-        </section>
-
-        {/* ── Section 3: Account ── */}
-        <form className={styles.section} onSubmit={handleSaveName}>
-          <h2 className={styles.sectionTitle}>Account</h2>
-          <div className={styles.card}>
-            <label className={styles.field}>
-              <span className={styles.fieldLabel}>Name</span>
-              <input
-                className={styles.fieldInput}
-                name="name"
-                autoComplete="name"
-                value={nameValue}
-                onChange={(e) => setNameDraft(e.target.value)}
-              />
-            </label>
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>Email</span>
-              <p className={`${styles.fieldText} ${styles.emailText}`}>
-                {profile?.email ?? user?.email}
-              </p>
-            </div>
-          </div>
-          <p
-            className={styles.errorText}
-            role={nameError ? "alert" : undefined}
-          >
-            {nameError}
-          </p>
-          {nameDirty && (
-            <button
-              type="submit"
-              className={styles.saveBtn}
-              disabled={savingName}
-            >
-              {savingName ? "Saving..." : "Save"}
-            </button>
-          )}
-        </form>
-
-        {/* ── Section 4: Organization ── */}
-        <form className={styles.section} onSubmit={handleSaveOrg}>
-          <h2 className={styles.sectionTitle}>Organization</h2>
-          <div className={styles.card}>
-            {isOwner ? (
-              <>
-                <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Organization Name</span>
-                  <input
-                    className={styles.fieldInput}
-                    name="orgName"
-                    autoComplete="organization"
-                    value={orgNameValue}
-                    onChange={(e) => editOrg({ name: e.target.value })}
-                  />
-                </label>
-                <div className={styles.field}>
-                  <span className={styles.fieldLabel}>Business Type</span>
-                  <div className={styles.typeWrapper}>
-                    {BUSINESS_TYPES.map((type) => (
-                      <button
-                        key={type.id}
-                        type="button"
-                        aria-pressed={businessTypeValue === type.id}
-                        className={`${styles.typeBtn} ${
-                          businessTypeValue === type.id
-                            ? styles.typeBtnActive
-                            : ""
-                        }`}
-                        onClick={() => editOrg({ businessType: type.id })}
-                      >
-                        {type.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className={styles.field}>
-                  <span className={styles.fieldLabel}>Organization Name</span>
-                  <p className={styles.fieldText}>{org?.name ?? "-"}</p>
-                </div>
-                <div className={styles.field}>
-                  <span className={styles.fieldLabel}>Business Type</span>
-                  <p className={styles.fieldText}>{typeLabel}</p>
-                </div>
-              </>
-            )}
-          </div>
-          <p className={styles.errorText} role={orgError ? "alert" : undefined}>
-            {orgError}
-          </p>
-          {isOwner && orgDirty && (
-            <button
-              type="submit"
-              className={styles.saveBtn}
-              disabled={savingOrg}
-            >
-              {savingOrg ? "Saving..." : "Save"}
-            </button>
-          )}
-        </form>
-
-        {/* ── Section 5: Log out ── */}
-        <section className={styles.section}>
+        {/* Tabs */}
+        <div className={styles.tabs} role="tablist" aria-label="Settings">
           <button
             type="button"
-            className={styles.logoutBtn}
-            onClick={() => signOut(auth)}
+            role="tab"
+            aria-selected={activeTab === "profile"}
+            className={`${styles.tab} ${
+              activeTab === "profile" ? styles.activeTab : ""
+            }`}
+            onClick={() => setActiveTab("profile")}
           >
-            <svg
-              className={styles.logoutLogo}
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"
-              />
-            </svg>
-            Log Out
+            Profile
           </button>
-        </section>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "organization"}
+            className={`${styles.tab} ${
+              activeTab === "organization" ? styles.activeTab : ""
+            }`}
+            onClick={() => setActiveTab("organization")}
+          >
+            Organization
+          </button>
+        </div>
+
+        {/* PROFILE TAB */}
+        {activeTab === "profile" && (
+          <>
+            <form className={styles.section} onSubmit={handleSaveName}>
+              <h2 className={styles.sectionTitle}>Account</h2>
+
+              <div className={styles.card}>
+                <label className={styles.field}>
+                  <span className={styles.fieldLabel}>Name</span>
+
+                  <input
+                    className={styles.fieldInput}
+                    name="name"
+                    autoComplete="name"
+                    value={nameValue}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                  />
+                </label>
+
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>Email</span>
+                  <p className={`${styles.fieldText} ${styles.emailText}`}>
+                    {profile?.email ?? user?.email ?? "-"}
+                  </p>
+                </div>
+              </div>
+
+              <p
+                className={styles.errorText}
+                role={nameError ? "alert" : undefined}
+              >
+                {nameError}
+              </p>
+
+              {nameDirty && (
+                <button
+                  type="submit"
+                  className={styles.saveBtn}
+                  disabled={savingName}
+                >
+                  {savingName ? "Saving..." : "Save"}
+                </button>
+              )}
+            </form>
+
+            <section className={styles.section}>
+              <button
+                type="button"
+                className={styles.logoutBtn}
+                onClick={() => signOut(auth)}
+              >
+                <svg
+                  className={styles.logoutLogo}
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"
+                  />
+                </svg>
+                Log Out
+              </button>
+            </section>
+          </>
+        )}
+
+        {/* ORGANIZATION TAB */}
+        {activeTab === "organization" && (
+          <>
+            {!orgId ? (
+              <section className={styles.section}>
+                <div className={styles.card}>
+                  <p className={styles.emptyText}>
+                    You are not part of an organization yet.
+                  </p>
+                </div>
+              </section>
+            ) : (
+              <>
+                {/* Organization code banner moved here */}
+                <section className={styles.codeWrapper}>
+                  <div className={styles.codeBanner}>
+                    <div className={styles.codeInfo}>
+                      <h1>Organization Code</h1>
+                      <p>
+                        Share this code with people you want to invite to your
+                        organization.
+                      </p>
+                      <h2>{org?.inviteCode ?? "--------"}</h2>
+                    </div>
+
+                    <button
+                      type="button"
+                      className={styles.copyBtn}
+                      onClick={handleCopy}
+                      disabled={!org?.inviteCode}
+                    >
+                      {copied ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                </section>
+
+                {/* Organization details */}
+                <form className={styles.section} onSubmit={handleSaveOrg}>
+                  <h2 className={styles.sectionTitle}>Organization Details</h2>
+
+                  <div className={styles.card}>
+                    {isOwner ? (
+                      <>
+                        <label className={styles.field}>
+                          <span className={styles.fieldLabel}>
+                            Organization Name
+                          </span>
+
+                          <input
+                            className={styles.fieldInput}
+                            name="orgName"
+                            autoComplete="organization"
+                            value={orgNameValue}
+                            onChange={(e) => editOrg({ name: e.target.value })}
+                          />
+                        </label>
+
+                        <div className={styles.field}>
+                          <span className={styles.fieldLabel}>
+                            Business Type
+                          </span>
+
+                          <div className={styles.typeWrapper}>
+                            {BUSINESS_TYPES.map((type) => (
+                              <button
+                                key={type.id}
+                                type="button"
+                                aria-pressed={businessTypeValue === type.id}
+                                className={`${styles.typeBtn} ${
+                                  businessTypeValue === type.id
+                                    ? styles.typeBtnActive
+                                    : ""
+                                }`}
+                                onClick={() =>
+                                  editOrg({ businessType: type.id })
+                                }
+                              >
+                                {type.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className={styles.field}>
+                          <span className={styles.fieldLabel}>
+                            Organization Name
+                          </span>
+                          <p className={styles.fieldText}>{org?.name ?? "-"}</p>
+                        </div>
+
+                        <div className={styles.field}>
+                          <span className={styles.fieldLabel}>
+                            Business Type
+                          </span>
+                          <p className={styles.fieldText}>{typeLabel}</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <p
+                    className={styles.errorText}
+                    role={orgError ? "alert" : undefined}
+                  >
+                    {orgError}
+                  </p>
+
+                  {isOwner && orgDirty && (
+                    <button
+                      type="submit"
+                      className={styles.saveBtn}
+                      disabled={savingOrg}
+                    >
+                      {savingOrg ? "Saving..." : "Save"}
+                    </button>
+                  )}
+                </form>
+
+                {/* All organization members */}
+                <section className={styles.section}>
+                  <div className={styles.memberHeading}>
+                    <h2 className={styles.sectionTitle}>Members</h2>
+                    <span className={styles.memberCount}>{members.length}</span>
+                  </div>
+
+                  <div className={styles.card}>
+                    {members.length === 0 ? (
+                      <p className={styles.emptyText}>
+                        Loading members or no members found.
+                      </p>
+                    ) : (
+                      members.map((member) => (
+                        <div key={member.id} className={styles.memberRow}>
+                          <div className={styles.memberAvatar}>
+                            {(member.name || member.email || "?")
+                              .trim()
+                              .charAt(0)
+                              .toUpperCase()}
+                          </div>
+
+                          <div className={styles.memberInfo}>
+                            <p className={styles.memberName}>
+                              {member.name || "Unnamed member"}
+                              {member.id === user?.uid && (
+                                <span className={styles.youLabel}>You</span>
+                              )}
+                            </p>
+
+                            <p className={styles.memberEmail}>
+                              {member.email || "No email"}
+                            </p>
+                          </div>
+
+                          <span
+                            className={`${styles.roleBadge} ${
+                              member.role === "owner" ? styles.ownerBadge : ""
+                            }`}
+                          >
+                            {member.role === "owner" ? "Owner" : "Staff"}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <p className={styles.hint}>
+                    Only the organization owner can edit organization details.
+                  </p>
+                </section>
+              </>
+            )}
+          </>
+        )}
       </main>
 
       <NavBar />
@@ -8197,6 +8530,137 @@ export default function ProfilePage() {
 
 .logoutLogo {
     width: 22px;
+}
+
+
+/* Profile and Organization tabs */
+.tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    margin: 10px 15px 5px;
+    padding: 5px;
+    background: #e8ecea;
+    border-radius: 12px;
+}
+
+.tab {
+    text-align: center;
+    padding: 11px 8px;
+    border-radius: 9px;
+    background: transparent;
+    color: #666;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.activeTab {
+    background: white;
+    color: var(--primary);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Members list */
+.memberHeading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.memberCount {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 23px;
+    height: 23px;
+    padding: 0 6px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: #e8ecea;
+    color: var(--primary);
+    font-size: var(--fontsize-12);
+    font-weight: 700;
+}
+
+.memberRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 15px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.memberRow:last-child {
+    border-bottom: none;
+}
+
+.memberAvatar {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #e8ecea;
+    color: var(--primary);
+    font-size: var(--fontsize-16);
+    font-weight: 700;
+}
+
+.memberInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.memberName {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    color: var(--dark);
+    overflow-wrap: anywhere;
+}
+
+.memberEmail {
+    margin-top: 4px;
+    font-size: var(--fontsize-12);
+    color: #888;
+    overflow-wrap: anywhere;
+}
+
+.youLabel {
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: #edf3ff;
+    color: var(--primary);
+    font-size: var(--fontsize-11);
+    font-weight: 600;
+}
+
+.roleBadge {
+    flex-shrink: 0;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: #f0f0f0;
+    color: #666;
+    font-size: var(--fontsize-12);
+    font-weight: 600;
+}
+
+.ownerBadge {
+    background: #e4f3e9;
+    color: #176b43;
+}
+
+.emptyText {
+    margin: 0;
+    padding: 18px 15px;
+    color: #888;
+    font-size: var(--fontsize-14);
 }
 </file>
 
@@ -12960,7 +13424,8 @@ import styles from "./transaction.module.css";
 import NavBar from "@/components/layout/NavBar";
 import { useAuth } from "@/context/AuthContext";
 import {
-  recentMonthKeys,
+  getEarliestTransactionDate,
+  monthKeysFromDate,
   subscribeMonthTransactions,
   formatAmount,
   formatDate,
@@ -12972,24 +13437,31 @@ import AppBar from "@/components/layout/AppBar";
 const RADIUS = 80;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-const monthKeys = recentMonthKeys(12);
-const multipleYears = new Set(monthKeys.map((key) => key.slice(0, 4))).size > 1;
+function getCurrentMonthKey() {
+  const now = new Date();
 
-function getMonthLabel(key) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getMonthLabel(key, multipleYears) {
   const [year, month] = key.split("-");
+
   const label = new Date(Number(year), Number(month) - 1, 1)
     .toLocaleString("en-MY", { month: "short" })
     .toUpperCase();
+
   return multipleYears ? `${label} ${year}` : label;
 }
 
 export default function TransactionPage() {
   const router = useRouter();
-  
+
   const { profile } = useAuth();
   const orgId = profile?.orgId;
 
-  const [month, setMonth] = useState(monthKeys[monthKeys.length - 1]);
+  const [monthKeys, setMonthKeys] = useState([getCurrentMonthKey()]);
+
+  const [month, setMonth] = useState(getCurrentMonthKey());
   const [tab, setTab] = useState("earning");
   const [category, setCategory] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -13000,6 +13472,34 @@ export default function TransactionPage() {
   const stickyRef = useRef(null);
   const offsetRef = useRef(0);
   const lastScrollYRef = useRef(0);
+
+  useEffect(() => {
+    if (!orgId) return;
+
+    let cancelled = false;
+
+    async function loadMonths() {
+      try {
+        const earliestDate = await getEarliestTransactionDate(orgId);
+
+        if (cancelled) return;
+
+        const keys = monthKeysFromDate(earliestDate);
+
+        setMonthKeys(keys);
+        setMonth(keys[0]);
+        setCategory(null);
+      } catch (error) {
+        console.error("Failed to load transaction months:", error);
+      }
+    }
+
+    loadMonths();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -13130,7 +13630,10 @@ export default function TransactionPage() {
                   className={key === month ? styles.monthActive : ""}
                   onClick={() => changeMonth(key)}
                 >
-                  {getMonthLabel(key)}
+                  {getMonthLabel(
+                    key,
+                    new Set(monthKeys.map((item) => item.slice(0, 4))).size > 1,
+                  )}
                 </button>
               ))}
             </div>
@@ -14879,6 +15382,12 @@ WHEN INFORMATION IS MISSING (very important)
 - Never invent numbers: stock, cost, price, amount, dates the user did not give. Today's date is fine as a default date for transactions.
 - You may infer obvious things (a donut is Food, "sold" means money in).
 - ask_user is ONLY for update/delete flows (e.g. which of several matching items), and for questions that are not about filling in a new product or transaction.
+
+INVENTORY MATCHING (very important)
+- When the user mentions a product name for ANY stock change, stock receipt or sale ("add 50 stock to roti", "sold 3 milo", "restock cups"), FIRST call search_products with that name.
+- If a result clearly matches what the user means (same name, or the user's word is part of the product name, e.g. "roti" matches "Roti Canai"), use update_product with stockChange (+/-). NEVER add a new product that could be one that already exists.
+- Only use add_product when search_products returns no similar product.
+- If two or more products could match, use ask_user: ask which one and offer the product names as options.
 
 STYLE
 - Match the user's language (English, Bahasa Malaysia or a mix) and tone. Be warm, short and concrete. Lead with the answer.
@@ -18684,6 +19193,7 @@ export default function AppBar({
   onBack,
   actionIcon,
   onAction,
+  actionMenu,
 }) {
   const router = useRouter();
 
@@ -18714,18 +19224,19 @@ export default function AppBar({
         <h1 className={styles.titleText}>{title}</h1>
 
         {/* Right: action button — hidden when actionIcon is null/undefined */}
-        {actionIcon != null ? (
-          <button
-            className={styles.topActionLogo}
-            onClick={onAction}
-            aria-label="Action"
-          >
-            {actionIcon}
-          </button>
-        ) : (
-          /* Invisible spacer keeps the title centred when there's no right button */
-          <span className={styles.topActionLogo} aria-hidden="true" />
-        )}
+        <div className={styles.rightActions}>
+          {actionIcon != null && (
+            <button
+              className={styles.topActionLogo}
+              onClick={onAction}
+              aria-label="Action"
+            >
+              {actionIcon}
+            </button>
+          )}
+
+          {actionMenu}
+        </div>
       </div>
     </section>
   );
@@ -18767,6 +19278,14 @@ export default function AppBar({
 .titleText {
     text-align: center;
 }
+
+.rightActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  min-width: 0;
+}
 </file>
 
 <file path="components/layout/NavBar.js">
@@ -18806,6 +19325,7 @@ export default function NavBar() {
             d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
           />
         </svg>
+        <p>Home</p>
       </Link>
 
       {/* Summary */}
@@ -18834,6 +19354,7 @@ export default function NavBar() {
             d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z"
           />
         </svg>
+        <p>Finance</p>
       </Link>
 
       {/* Chat (middle plus button) */}
@@ -18880,6 +19401,7 @@ export default function NavBar() {
             d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
           />
         </svg>
+        <p>Inventory</p>
       </Link>
 
       {/* Transaction */}
@@ -18903,6 +19425,7 @@ export default function NavBar() {
             d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
           />
         </svg>
+        <p>History</p>
       </Link>
     </div>
   );
@@ -18931,8 +19454,10 @@ export default function NavBar() {
     aspect-ratio: 1/1;
     width: 40px;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 2px;
     transition: var(--animation-apple);
 }
 
@@ -18940,27 +19465,31 @@ export default function NavBar() {
     width: 26px;
 }
 
+.navAction p {
+    font-size: var(--fontsize-13);
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    padding-bottom: 2px;
+}
+
 .navActionActive {
-    transform: translateY(-15%);
+    transform: translateY(-5%);
     color: var(--primary);
     transition: var(--animation-apple);
 }
 
-.navActionActive::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    width: 50%;
-    height: 3px;
-    background-color: var(--primary);
-    transform: translateX(-50%);
+.navActionActive p  {
+    border-bottom: 2px solid var(--primary) !important;
 }
 
 .navActionMid {
+    aspect-ratio: 1/1;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
     border-radius: 50%;
     background-color: var(--primary);
-    transform: scale(1.5) translateY(-50%);
+    transform: scale(1.5) translateY(-40%);
 }
 
 .navActionMid .navActionLogo {
@@ -19781,12 +20310,7 @@ import {
   updateProduct,
 } from "./inventory";
 import { addTransaction } from "./transactions";
-import {
-  addTicket,
-  getTicket,
-  mapTicket,
-  updateTicketStatus,
-} from "./tickets";
+import { addTicket, getTicket, mapTicket, updateTicketStatus } from "./tickets";
 import { subscribeSummary } from "./summary";
 import { DAY_KEYS, subscribePublicity, weekRange } from "./publicity";
 import {
@@ -19802,7 +20326,11 @@ import {
 /* Small helpers                                                       */
 /* ------------------------------------------------------------------ */
 
-const norm = (s) => String(s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+const norm = (s) =>
+  String(s ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 const num = (v) => {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
@@ -19817,7 +20345,9 @@ const validDate = (s) =>
   !Number.isNaN(new Date(`${s}T00:00:00`).getTime());
 const pick = (list, v) => list.find((x) => norm(x) === norm(v)) ?? null;
 const title = (s) =>
-  String(s).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  String(s)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 const rm = (n) => `RM ${Number(n).toFixed(2)}`;
 const bad = (error) => ({ ok: false, error });
 const row = (label, value, from) =>
@@ -19882,7 +20412,9 @@ const fetchProducts = (orgId) =>
 
 async function getRawTx(orgId, id) {
   if (!id) return null;
-  const snap = await getDoc(doc(db, "organizations", orgId, "transactions", id));
+  const snap = await getDoc(
+    doc(db, "organizations", orgId, "transactions", id),
+  );
   if (!snap.exists() || snap.data().deletedAt) return null;
   const d = snap.data();
   return {
@@ -19918,11 +20450,14 @@ export const READ_RUNNERS = {
     let list = await fetchProducts(ctx.orgId);
     const q = norm(a.query);
     if (q) {
-      list = list.filter((p) => nameMatches(p.name, q) || norm(p.barcode) === q);
+      list = list.filter(
+        (p) => nameMatches(p.name, q) || norm(p.barcode) === q,
+      );
     }
     const cat = pick(PRODUCT_CATS, a.category);
     if (cat) list = list.filter((p) => p.category === cat);
-    if (a.lowStockOnly) list = list.filter((p) => p.stock <= LOW_STOCK_THRESHOLD);
+    if (a.lowStockOnly)
+      list = list.filter((p) => p.stock <= LOW_STOCK_THRESHOLD);
     const limit = clamp(Math.round(num(a.limit) ?? 15), 1, 30);
     return {
       totalMatches: list.length,
@@ -19955,14 +20490,20 @@ export const READ_RUNNERS = {
     let rows = snap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
       .filter((r) => !r.deletedAt && r.status !== "pending_review");
-    if (a.type === "in" || a.type === "out") rows = rows.filter((r) => r.type === a.type);
+    if (a.type === "in" || a.type === "out")
+      rows = rows.filter((r) => r.type === a.type);
     const cat = pick(TX_CATEGORIES, a.category);
     if (cat) rows = rows.filter((r) => r.category === cat);
-    if (norm(a.query)) rows = rows.filter((r) => nameMatches(r.description, a.query));
+    if (norm(a.query))
+      rows = rows.filter((r) => nameMatches(r.description, a.query));
     rows.sort((x, y2) => tsDate(y2.date) - tsDate(x.date));
 
     const sum = (type) =>
-      r2(rows.filter((r) => r.type === type).reduce((s, r) => s + (r.amount ?? 0), 0) / 100);
+      r2(
+        rows
+          .filter((r) => r.type === type)
+          .reduce((s, r) => s + (r.amount ?? 0), 0) / 100,
+      );
     const limit = clamp(Math.round(num(a.limit) ?? 20), 1, 40);
     return {
       month,
@@ -20014,7 +20555,9 @@ export const READ_RUNNERS = {
       stock: {
         totalProducts: products.length,
         outOfStock: products.filter((p) => p.stock <= 0).length,
-        lowStock: products.filter((p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD).length,
+        lowStock: products.filter(
+          (p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD,
+        ).length,
         valueAtCost: r2(products.reduce((t, p) => t + p.cost * p.stock, 0)),
       },
     };
@@ -20024,7 +20567,9 @@ export const READ_RUNNERS = {
     const snap = await getDocs(
       collection(db, "organizations", ctx.orgId, "checklist"),
     );
-    const done = new Set(snap.docs.filter((d) => d.data().done).map((d) => d.id));
+    const done = new Set(
+      snap.docs.filter((d) => d.data().done).map((d) => d.id),
+    );
     const groups = CHECKLIST.map((g) => ({
       group: g.title,
       done: g.items.filter((i) => done.has(i.id)).length,
@@ -20041,9 +20586,13 @@ export const READ_RUNNERS = {
   },
 
   async get_publicity(a, ctx) {
-    const { state, weeks } = await once((cb) => subscribePublicity(ctx.orgId, cb));
-    if (!state) return { started: false, note: "The user has not opened Publicity yet." };
-    const total = (v) => DAY_KEYS.reduce((s, k) => s + (Number(v?.[k]) || 0), 0);
+    const { state, weeks } = await once((cb) =>
+      subscribePublicity(ctx.orgId, cb),
+    );
+    if (!state)
+      return { started: false, note: "The user has not opened Publicity yet." };
+    const total = (v) =>
+      DAY_KEYS.reduce((s, k) => s + (Number(v?.[k]) || 0), 0);
     const current = weeks[state.week];
     const recentWeeks = Object.keys(weeks)
       .map(Number)
@@ -20051,7 +20600,9 @@ export const READ_RUNNERS = {
       .slice(0, 3)
       .map((n) => {
         const v = weeks[n].views;
-        const logged = DAY_KEYS.filter((k) => v[k] !== null && v[k] !== undefined);
+        const logged = DAY_KEYS.filter(
+          (k) => v[k] !== null && v[k] !== undefined,
+        );
         const best = [...logged].sort((x, y) => v[y] - v[x])[0] ?? null;
         return {
           week: n,
@@ -20067,7 +20618,10 @@ export const READ_RUNNERS = {
       platform: state.platform,
       postsPerWeek: state.postsPerWeek,
       topic: state.topic || null,
-      plannedDays: (current?.planned ?? []).map((p) => ({ day: p.day, reason: p.reason })),
+      plannedDays: (current?.planned ?? []).map((p) => ({
+        day: p.day,
+        reason: p.reason,
+      })),
       recentWeeks,
     };
   },
@@ -20080,7 +20634,8 @@ export const READ_RUNNERS = {
       ),
     );
     let list = snap.docs.map((d) => mapTicket(d.id, d.data()));
-    if (pick(TICKET_STATS, a.status)) list = list.filter((t) => t.status === a.status);
+    if (pick(TICKET_STATS, a.status))
+      list = list.filter((t) => t.status === a.status);
     if (norm(a.query)) list = list.filter((t) => nameMatches(t.title, a.query));
     const limit = clamp(Math.round(num(a.limit) ?? 15), 1, 30);
     return {
@@ -20099,7 +20654,8 @@ export const READ_RUNNERS = {
   },
 
   async scan_receipts(a, ctx) {
-    if (!ctx.files?.length) return { error: "No files are attached to this message." };
+    if (!ctx.files?.length)
+      return { error: "No files are attached to this message." };
     const res = await fetch("/api/receipt-processing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -20110,7 +20666,8 @@ export const READ_RUNNERS = {
     const json = await res.json().catch(() => ({}));
     if (!res.ok) return { error: json.error || "Could not read the receipt." };
     const docs = json.documents || [];
-    if (docs.length === 0) return { error: "No receipt was found in the files." };
+    if (docs.length === 0)
+      return { error: "No receipt was found in the files." };
     return {
       receipts: docs.map((d, i) => ({
         receiptNo: i + 1,
@@ -20119,7 +20676,9 @@ export const READ_RUNNERS = {
         total: d.total_amount,
         tax: d.tax_amount,
         suggestedCategory: RECEIPT_CATEGORY[d.category] || "other",
-        items: (d.line_items || []).slice(0, 6).map((li) => `${li.quantity}x ${li.name}`),
+        items: (d.line_items || [])
+          .slice(0, 6)
+          .map((li) => `${li.quantity}x ${li.name}`),
         totalUnreadable: !d.total_amount,
       })),
     };
@@ -20152,7 +20711,11 @@ const PRODUCT_LABEL = {
   barcode: "Barcode",
 };
 const productFmt = (k, v) =>
-  k === "cost" || k === "price" ? rm(v) : v === "" || v == null ? "-" : String(v);
+  k === "cost" || k === "price"
+    ? rm(v)
+    : v === "" || v == null
+      ? "-"
+      : String(v);
 
 const TX_LABEL = {
   type: "Type",
@@ -20184,7 +20747,9 @@ const TICKET_LABEL = {
   status: "Status",
 };
 const ticketFmt = (k, v) =>
-  k === "category" || k === "status" || k === "priority" ? title(v) : String(v ?? "-").slice(0, 80);
+  k === "category" || k === "status" || k === "priority"
+    ? title(v)
+    : String(v ?? "-").slice(0, 80);
 
 const changedKeys = (cur, patch) =>
   Object.keys(patch).filter((k) => String(patch[k]) !== String(cur[k] ?? ""));
@@ -20205,16 +20770,49 @@ export const WRITE_TOOLS = {
       const miss = [];
       if (!name) miss.push("name");
       if (!category) miss.push("category (Food, Drinks or Household)");
-      if (stock === null || stock < 0 || !Number.isInteger(stock)) miss.push("stock (whole number)");
+      if (stock === null || stock < 0 || !Number.isInteger(stock))
+        miss.push("stock (whole number)");
       if (cost === null || cost < 0) miss.push("cost");
       if (price === null || price < 0) miss.push("price");
-      if (category === "Food" && !validDate(dueDate)) miss.push("dueDate (YYYY-MM-DD)");
-      if (miss.length) return bad(`Missing or invalid: ${miss.join(", ")}. Ask the user with ask_user.`);
+      if (category === "Food" && !validDate(dueDate))
+        miss.push("dueDate (YYYY-MM-DD)");
+      if (miss.length)
+        return bad(
+          `Missing or invalid: ${miss.join(", ")}. Ask the user with ask_user.`,
+        );
 
       const barcode = String(a.barcode ?? "").trim();
       const warnings = [];
-      const dupe = (await fetchProducts(ctx.orgId)).find((p) => norm(p.name) === norm(name));
-      if (dupe) warnings.push(`"${dupe.name}" already exists (${dupe.stock} in stock). Allowing adds a second product.`);
+
+      const all = await fetchProducts(ctx.orgId);
+
+      // New: catch "roti" vs "Roti Canai" before creating a duplicate
+      const q = norm(name);
+      const tokens = q.split(" ").filter(Boolean);
+      const similar = all.filter((p) => {
+        const n = norm(p.name);
+        return n !== q && (n.includes(q) || tokens.every((t) => n.includes(t)));
+      });
+      if (similar.length === 1) {
+        const s = similar[0];
+        return bad(
+          `A similar product already exists: "${s.name}" (stock ${s.stock}, price RM ${s.price}). ` +
+            `Do NOT add a new one. Ask the user with ask_user whether they mean "${s.name}"; ` +
+            `if yes, use update_product with id "${s.id}" and stockChange, then stop.`,
+        );
+      }
+      if (similar.length > 1) {
+        return bad(
+          `Several similar products exist: ${similar.map((p) => `"${p.name}" (id ${p.id})`).join(", ")}. ` +
+            `Use ask_user to ask which one the user means, then update_product with stockChange.`,
+        );
+      }
+
+      const dupe = all.find((p) => norm(p.name) === norm(name));
+      if (dupe)
+        warnings.push(
+          `"${dupe.name}" already exists (${dupe.stock} in stock). Allowing adds a second product.`,
+        );
       if (price < cost) warnings.push("The price is lower than the cost.");
 
       const rows = [
@@ -20244,7 +20842,8 @@ export const WRITE_TOOLS = {
   update_product: {
     async prepare(a, ctx) {
       const cur = a.id ? await getProduct(ctx.orgId, String(a.id)) : null;
-      if (!cur) return bad("Product not found. Use search_products to get a valid id.");
+      if (!cur)
+        return bad("Product not found. Use search_products to get a valid id.");
 
       const patch = {};
       if (a.name !== undefined) {
@@ -20259,13 +20858,16 @@ export const WRITE_TOOLS = {
       }
       if (a.stock !== undefined) {
         const s = num(a.stock);
-        if (s === null || s < 0 || !Number.isInteger(s)) return bad("stock must be a whole number of 0 or more.");
+        if (s === null || s < 0 || !Number.isInteger(s))
+          return bad("stock must be a whole number of 0 or more.");
         patch.stock = s;
       }
       if (a.stockChange !== undefined) {
         const d = num(a.stockChange);
-        if (d === null || !Number.isInteger(d)) return bad("stockChange must be a whole number.");
-        if (cur.stock + d < 0) return bad(`Stock would go below 0 (current stock is ${cur.stock}).`);
+        if (d === null || !Number.isInteger(d))
+          return bad("stockChange must be a whole number.");
+        if (cur.stock + d < 0)
+          return bad(`Stock would go below 0 (current stock is ${cur.stock}).`);
         patch.stock = cur.stock + d;
       }
       for (const k of ["cost", "price"]) {
@@ -20275,7 +20877,8 @@ export const WRITE_TOOLS = {
         patch[k] = r2(n);
       }
       if (a.dueDate !== undefined) {
-        if (!validDate(String(a.dueDate))) return bad("dueDate must be YYYY-MM-DD.");
+        if (!validDate(String(a.dueDate)))
+          return bad("dueDate must be YYYY-MM-DD.");
         patch.dueDate = String(a.dueDate);
       }
       if (a.barcode !== undefined) patch.barcode = String(a.barcode).trim();
@@ -20310,13 +20913,18 @@ export const WRITE_TOOLS = {
   delete_product: {
     async prepare(a, ctx) {
       const cur = a.id ? await getProduct(ctx.orgId, String(a.id)) : null;
-      if (!cur) return bad("Product not found. Use search_products to get a valid id.");
+      if (!cur)
+        return bad("Product not found. Use search_products to get a valid id.");
       return {
         ok: true,
         kind: "delete",
         title: `Delete product: ${cur.name}`,
         args: { id: cur.id },
-        rows: [row("Category", cur.category), row("Stock", cur.stock), row("Price", rm(cur.price))],
+        rows: [
+          row("Category", cur.category),
+          row("Stock", cur.stock),
+          row("Price", rm(cur.price)),
+        ],
         warnings: cur.stock > 0 ? [`It still has ${cur.stock} in stock.`] : [],
       };
     },
@@ -20342,11 +20950,15 @@ export const WRITE_TOOLS = {
       if (!description) miss.push("description");
       if (!validDate(date)) miss.push("date (YYYY-MM-DD)");
       if (!paymentMethod) miss.push("paymentMethod");
-      if (miss.length) return bad(`Missing or invalid: ${miss.join(", ")}. Ask the user with ask_user.`);
+      if (miss.length)
+        return bad(
+          `Missing or invalid: ${miss.join(", ")}. Ask the user with ask_user.`,
+        );
 
       const note = String(a.note ?? "").trim();
       const warnings = [];
-      if (date > isoDay(new Date())) warnings.push("This date is in the future.");
+      if (date > isoDay(new Date()))
+        warnings.push("This date is in the future.");
       const rows = [
         row("Type", txFmt("type", type)),
         row("Amount", rm(amount)),
@@ -20359,13 +20971,25 @@ export const WRITE_TOOLS = {
         ok: true,
         kind: "add",
         title: `${type === "in" ? "Record earning" : "Record spending"}: ${description}`,
-        args: { type, amount: r2(amount), category, description, date, paymentMethod, note },
+        args: {
+          type,
+          amount: r2(amount),
+          category,
+          description,
+          date,
+          paymentMethod,
+          note,
+        },
         rows,
         warnings,
       };
     },
     async run(a, ctx) {
-      await addTransaction({ orgId: ctx.orgId, user: ctx.user, transaction: a });
+      await addTransaction({
+        orgId: ctx.orgId,
+        user: ctx.user,
+        transaction: a,
+      });
       return { note: "Transaction recorded." };
     },
   },
@@ -20373,11 +20997,15 @@ export const WRITE_TOOLS = {
   update_transaction: {
     async prepare(a, ctx) {
       const cur = await getRawTx(ctx.orgId, a.id ? String(a.id) : "");
-      if (!cur) return bad("Transaction not found. Use list_transactions to get a valid id.");
+      if (!cur)
+        return bad(
+          "Transaction not found. Use list_transactions to get a valid id.",
+        );
 
       const patch = {};
       if (a.type !== undefined) {
-        if (a.type !== "in" && a.type !== "out") return bad("type must be in or out.");
+        if (a.type !== "in" && a.type !== "out")
+          return bad("type must be in or out.");
         patch.type = a.type;
       }
       if (a.amount !== undefined) {
@@ -20421,16 +21049,19 @@ export const WRITE_TOOLS = {
       const cur = await getRawTx(ctx.orgId, a.id);
       if (!cur) throw new Error("This transaction no longer exists.");
       const m = { ...cur, ...a.patch };
-      await updateDoc(doc(db, "organizations", ctx.orgId, "transactions", a.id), {
-        type: m.type,
-        amount: Math.round(m.amount * 100),
-        category: m.category,
-        description: m.description,
-        date: Timestamp.fromDate(new Date(`${m.date}T00:00:00`)),
-        paymentMethod: m.paymentMethod,
-        note: m.note,
-        updatedAt: serverTimestamp(),
-      });
+      await updateDoc(
+        doc(db, "organizations", ctx.orgId, "transactions", a.id),
+        {
+          type: m.type,
+          amount: Math.round(m.amount * 100),
+          category: m.category,
+          description: m.description,
+          date: Timestamp.fromDate(new Date(`${m.date}T00:00:00`)),
+          paymentMethod: m.paymentMethod,
+          note: m.note,
+          updatedAt: serverTimestamp(),
+        },
+      );
       return { note: "Transaction updated." };
     },
   },
@@ -20438,7 +21069,10 @@ export const WRITE_TOOLS = {
   delete_transaction: {
     async prepare(a, ctx) {
       const cur = await getRawTx(ctx.orgId, a.id ? String(a.id) : "");
-      if (!cur) return bad("Transaction not found. Use list_transactions to get a valid id.");
+      if (!cur)
+        return bad(
+          "Transaction not found. Use list_transactions to get a valid id.",
+        );
       return {
         ok: true,
         kind: "delete",
@@ -20454,10 +21088,13 @@ export const WRITE_TOOLS = {
     },
     async run(a, ctx) {
       // Soft delete, same as the rest of the app (deletedAt is filtered out everywhere)
-      await updateDoc(doc(db, "organizations", ctx.orgId, "transactions", a.id), {
-        deletedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      await updateDoc(
+        doc(db, "organizations", ctx.orgId, "transactions", a.id),
+        {
+          deletedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+      );
       return { note: "Transaction deleted." };
     },
   },
@@ -20470,7 +21107,8 @@ export const WRITE_TOOLS = {
       const miss = [];
       if (!ticketTitle) miss.push("title");
       if (!description) miss.push("description");
-      if (miss.length) return bad(`Missing: ${miss.join(", ")}. Ask the user with ask_user.`);
+      if (miss.length)
+        return bad(`Missing: ${miss.join(", ")}. Ask the user with ask_user.`);
       const category = pick(TICKET_CATS, a.category) ?? "other";
       const priority = pick(TICKET_PRIOS, a.priority) ?? "medium";
       const transactionId = a.transactionId ? String(a.transactionId) : null;
@@ -20478,7 +21116,13 @@ export const WRITE_TOOLS = {
         ok: true,
         kind: "add",
         title: `Create report: ${ticketTitle}`,
-        args: { title: ticketTitle, description, category, priority, transactionId },
+        args: {
+          title: ticketTitle,
+          description,
+          category,
+          priority,
+          transactionId,
+        },
         rows: [
           row("Category", title(category)),
           row("Priority", title(priority)),
@@ -20496,7 +21140,8 @@ export const WRITE_TOOLS = {
   update_ticket: {
     async prepare(a, ctx) {
       const cur = a.id ? await getTicket(ctx.orgId, String(a.id)) : null;
-      if (!cur) return bad("Report not found. Use list_tickets to get a valid id.");
+      if (!cur)
+        return bad("Report not found. Use list_tickets to get a valid id.");
 
       const patch = {};
       if (a.title !== undefined) {
@@ -20522,7 +21167,10 @@ export const WRITE_TOOLS = {
       if (a.status !== undefined) {
         const s = pick(TICKET_STATS, a.status);
         if (!s) return bad("Invalid status.");
-        if (!ctx.isOwner) return bad("Only the owner can change a report's status. Tell the user.");
+        if (!ctx.isOwner)
+          return bad(
+            "Only the owner can change a report's status. Tell the user.",
+          );
         patch.status = s;
       }
       const keys = changedKeys(cur, patch);
@@ -20544,16 +21192,19 @@ export const WRITE_TOOLS = {
           updatedAt: serverTimestamp(),
         });
       }
-      if (status) await updateTicketStatus({ orgId: ctx.orgId, ticketId: a.id, status });
+      if (status)
+        await updateTicketStatus({ orgId: ctx.orgId, ticketId: a.id, status });
       return { note: "Report updated." };
     },
   },
 
   delete_ticket: {
     async prepare(a, ctx) {
-      if (!ctx.isOwner) return bad("Only the owner can delete reports. Tell the user.");
+      if (!ctx.isOwner)
+        return bad("Only the owner can delete reports. Tell the user.");
       const cur = a.id ? await getTicket(ctx.orgId, String(a.id)) : null;
-      if (!cur) return bad("Report not found. Use list_tickets to get a valid id.");
+      if (!cur)
+        return bad("Report not found. Use list_tickets to get a valid id.");
       return {
         ok: true,
         kind: "delete",
@@ -20668,7 +21319,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: "search_products",
     description:
-      "Find products in inventory. Use it to look up ids, stock, cost and price. Call it before updating or deleting a product.",
+      "Find products in inventory. Use it to look up ids, stock, cost and price. ALWAYS call it before add_product and before any stock change, to match the user's product name against what already exists.",
     parameters: obj({
       query: str("Product name or part of it, or an exact barcode."),
       category: str("Filter by category.", PRODUCT_CATS),
@@ -20737,7 +21388,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: "add_product",
     description:
-      "Propose adding a new product. ALWAYS call this when the user wants to add a product, even if they gave no details at all (call it with empty arguments). Pass only the fields the user actually stated. NEVER ask the user for missing fields in chat and never invent values: the app shows a form for whatever is missing.",
+      "Propose adding a new product. ALWAYS call this when the user wants to add a product, even if they gave no details at all (call it with empty arguments). Pass only the fields the user actually stated. NEVER ask the user for missing fields in chat and never invent values: the app shows a form for whatever is missing. Call search_products first: if a similar product already exists, do NOT add — use update_product instead.",
     parameters: obj({
       name: str("Product name, only if the user said it."),
       category: str(
@@ -22090,9 +22741,12 @@ import {
   addDoc,
   serverTimestamp,
   getDoc,
+  getDocs,
   onSnapshot,
   query,
   where,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -22140,6 +22794,25 @@ function monthRange(monthKey) {
   };
 }
 
+export function monthKeysFromDate(firstDate) {
+  const now = new Date();
+  const start = firstDate ? new Date(firstDate) : now;
+
+  const keys = [];
+
+  for (
+    let d = new Date(start.getFullYear(), start.getMonth(), 1);
+    d <= new Date(now.getFullYear(), now.getMonth(), 1);
+    d.setMonth(d.getMonth() + 1)
+  ) {
+    keys.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+    );
+  }
+
+  return keys;
+}
+
 /** The last `count` "yyyy-MM" keys, oldest first (for the month bar). */
 export function recentMonthKeys(count = 12) {
   const keys = [];
@@ -22151,6 +22824,27 @@ export function recentMonthKeys(count = 12) {
     );
   }
   return keys;
+}
+
+export async function getEarliestTransactionDate(orgId) {
+  const transactionsRef = collection(
+    db,
+    "organizations",
+    orgId,
+    "transactions",
+  );
+
+  const q = query(transactionsRef, orderBy("date", "asc"), limit(1));
+
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  const data = snapshot.docs[0].data();
+
+  return data.date?.toDate ? data.date.toDate() : new Date(data.date);
 }
 
 /* ------------------------------------------------------------------ */
