@@ -245,6 +245,10 @@ cp .env.example .env.local      # then fill in your values
 npm run dev
 ```
 
+### Run Tests
+
+BISCOACH does not include an automated test suite. As stated in our Technical Declaration, each feature was tested manually with sample inputs such as test receipts and invoices.
+
 ---
 
 ## How We Use Replit *(Required)*
