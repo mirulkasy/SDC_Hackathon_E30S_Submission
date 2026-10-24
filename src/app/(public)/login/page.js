@@ -9,7 +9,10 @@ import { useAuth } from "@/context/AuthContext";
 import { loginUser } from "@/lib/auth";
 import styles from "./login.module.css";
 
-const BAD_CREDENTIALS = { field: "password", msg: "Incorrect email or password." };
+const BAD_CREDENTIALS = {
+  field: "password",
+  msg: "Incorrect email or password.",
+};
 
 // Firebase now answers "auth/invalid-credential" for both a wrong password
 // and an unknown email (email enumeration protection), the other two codes
@@ -19,7 +22,10 @@ const AUTH_ERRORS = {
   "auth/wrong-password": BAD_CREDENTIALS,
   "auth/user-not-found": BAD_CREDENTIALS,
   "auth/invalid-email": { field: "email", msg: "Enter a valid email address." },
-  "auth/user-disabled": { field: "form", msg: "This account has been disabled." },
+  "auth/user-disabled": {
+    field: "form",
+    msg: "This account has been disabled.",
+  },
   "auth/too-many-requests": {
     field: "form",
     msg: "Too many attempts. Try again in a few minutes.",

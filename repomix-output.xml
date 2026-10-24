@@ -85,6 +85,9 @@ app/
         page.js
       inventory.module.css
       page.js
+    invoice/
+      invoice.module.css
+      page.js
     profile/
       page.js
       profile.module.css
@@ -152,6 +155,9 @@ app/
       route.js
     receipt-processing/
       route.js
+    sheet/
+      [page]/
+        route.js
     text-to-inventory/
       route.js
     vendor-overcharge/
@@ -159,6 +165,7 @@ app/
     video-ideas/
       route.js
   layout.js
+  loading.js
   page.js
   page.module.css
 components/
@@ -174,8 +181,14 @@ components/
   layout/
     AppBar.js
     AppBar.module.css
+    ExportMenu.js
+    ExportMenu.module.css
     NavBar.js
     NavBar.module.css
+  PageTransition.js
+  PageTransition.module.css
+  SplashScreen.js
+  SplashScreen.module.css
 context/
   AuthContext.js
   OnboardingContext.js
@@ -190,6 +203,8 @@ lib/
   chatTools.js
   chatToolSchemas.js
   checklist.js
+  csv-builders.js
+  csv.js
   firebase.js
   gemini.js
   inventory.js
@@ -200,6 +215,7 @@ lib/
   tickets.js
   transactions.js
   usage.js
+  useSplashRouter.js
 styles/
   globals.css
 </directory_structure>
@@ -3076,7 +3092,7 @@ export default function AidPage() {
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { useAuth } from "@/context/AuthContext";
@@ -3098,7 +3114,7 @@ const HINTS = new Map([
 ]);
 
 export default function BarcodePage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { profile } = useAuth();
   const orgId = profile?.orgId;
 
@@ -5627,7 +5643,7 @@ export default function ChecklistPage() {
 
 <file path="app/(protected)/home/home.module.css">
 .homePage {
-    padding: 0 !important;
+    padding: 0 0 150px !important;
     background-color: #f5f7f6;
 }
 
@@ -5763,18 +5779,128 @@ export default function ChecklistPage() {
     top: 50%;
     transform: translateY(-20%) scale(1.5);
 }
+
+/* ── Alerts (low stock + expiring soon) ── */
+.alertSection {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 20px 15px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.alertGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.alertGroupTitle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.alertGroupTitle span {
+    font-size: var(--fontsize-12);
+    font-weight: 500;
+    color: #888;
+}
+
+.alertCard {
+    background-color: white;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.alertRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    text-decoration: none;
+    color: inherit;
+}
+
+.alertRow:last-child {
+    border-bottom: none;
+}
+
+.alertInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.alertInfo h1 {
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    color: var(--dark);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.alertInfo p {
+    font-size: var(--fontsize-12);
+    color: #8a8fa3;
+}
+
+.alertCritical,
+.alertWarn {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: var(--fontsize-12);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.alertCritical {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.alertWarn {
+    background-color: #fef3c7;
+    color: #b45309;
+}
 </file>
 
 <file path="app/(protected)/home/page.js">
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./home.module.css";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeDailyStats, formatRMFromSen } from "@/lib/transactions";
+import { subscribeProducts, LOW_STOCK_THRESHOLD } from "@/lib/inventory";
 import Image from "next/image";
 import NavBar from "@/components/layout/NavBar";
 import Link from "next/link";
+
+// Matches organizations/{orgId}.settings.expiryAlertDays default from onboarding
+const EXPIRY_WARNING_DAYS = 7;
+
+function daysUntil(dateStr) {
+  const due = new Date(`${dateStr}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((due - today) / 86400000);
+}
+
+function expiryLabel(daysLeft) {
+  if (daysLeft < 0) return "Expired";
+  if (daysLeft === 0) return "Due today";
+  return `${daysLeft}d left`;
+}
 
 export default function HomePage() {
   const { profile } = useAuth();
@@ -5784,11 +5910,37 @@ export default function HomePage() {
     profit: 0,
     loaded: false,
   });
+  const [products, setProducts] = useState([]);
 
   useEffect(() => {
     if (!profile?.orgId) return;
     return subscribeDailyStats(profile.orgId, setStats);
   }, [profile?.orgId]);
+
+  useEffect(() => {
+    if (!profile?.orgId) return;
+    return subscribeProducts(profile.orgId, setProducts);
+  }, [profile?.orgId]);
+
+  const expiryAlerts = useMemo(
+    () =>
+      products
+        .filter((p) => p.category === "Food" && p.dueDate)
+        .map((p) => ({ ...p, daysLeft: daysUntil(p.dueDate) }))
+        .filter((p) => p.daysLeft <= EXPIRY_WARNING_DAYS)
+        .sort((a, b) => a.daysLeft - b.daysLeft)
+        .slice(0, 6),
+    [products],
+  );
+
+  const lowStockAlerts = useMemo(
+    () =>
+      products
+        .filter((p) => p.stock <= LOW_STOCK_THRESHOLD)
+        .sort((a, b) => a.stock - b.stock)
+        .slice(0, 6),
+    [products],
+  );
 
   return (
     <>
@@ -5998,6 +6150,76 @@ export default function HomePage() {
             />
           </Link>
         </section>
+
+        {(expiryAlerts.length > 0 || lowStockAlerts.length > 0) && (
+          <section className={styles.alertSection}>
+            {expiryAlerts.length > 0 && (
+              <div className={styles.alertGroup}>
+                <h2 className={styles.alertGroupTitle}>
+                  Expiring Soon
+                  <span>{expiryAlerts.length}</span>
+                </h2>
+                <div className={styles.alertCard}>
+                  {expiryAlerts.map((p) => {
+                    const critical = p.daysLeft <= 2;
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/inventory/${p.id}`}
+                        className={styles.alertRow}
+                      >
+                        <div className={styles.alertInfo}>
+                          <h1>{p.name}</h1>
+                          <p>{p.stock} in stock</p>
+                        </div>
+                        <span
+                          className={
+                            critical ? styles.alertCritical : styles.alertWarn
+                          }
+                        >
+                          {expiryLabel(p.daysLeft)}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {lowStockAlerts.length > 0 && (
+              <div className={styles.alertGroup}>
+                <h2 className={styles.alertGroupTitle}>
+                  Low Stock
+                  <span>{lowStockAlerts.length}</span>
+                </h2>
+                <div className={styles.alertCard}>
+                  {lowStockAlerts.map((p) => {
+                    const critical = p.stock / LOW_STOCK_THRESHOLD < 0.4;
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/inventory/${p.id}`}
+                        className={styles.alertRow}
+                      >
+                        <div className={styles.alertInfo}>
+                          <h1>{p.name}</h1>
+                          <p>min {LOW_STOCK_THRESHOLD}</p>
+                        </div>
+                        <span
+                          className={
+                            critical ? styles.alertCritical : styles.alertWarn
+                          }
+                        >
+                          {p.stock === 0 ? "Out of stock" : `${p.stock} left`}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
       </main>
 
       <NavBar></NavBar>
@@ -7315,7 +7537,8 @@ export default function ImagePage() {
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import styles from "./subInventory.module.css";
 import CustomInput from "@/components/input/CustomInput";
 import CustomSelect from "@/components/input/CustomSelect";
@@ -7399,7 +7622,7 @@ export default function SubInventoryPage() {
   const [sugLoading, setSugLoading] = useState(false);
   const [sugError, setSugError] = useState("");
 
-  const router = useRouter();
+  const router = useSplashRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const menuRef = useRef(null);
@@ -7830,7 +8053,7 @@ export default function SubInventoryPage() {
         {/* ── Section 3: Price Suggestion (from /api/ecommerce-pricing) ── */}
         <section className={styles.suggestionSection}>
           <h2>
-            Price Suggestion <span className={styles.aiBadge}>AI</span>
+            Price Suggestion 
           </h2>
 
           {costNum <= 0 ? (
@@ -8040,15 +8263,6 @@ export default function SubInventoryPage() {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.aiBadge {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background-color: black;
-  color: white;
-  font-size: var(--fontsize-12);
-  font-weight: 500;
 }
 
 .suggestionGrid {
@@ -8505,7 +8719,7 @@ const validate = (form) => {
 };
 
 export default function AddInventoryPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const searchParams = useSearchParams();
   const { user, profile } = useAuth();
   const orgId = profile?.orgId;
@@ -8950,7 +9164,7 @@ export default function AddInventoryPage() {
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import Image from "next/image";
 import styles from "./inventory.module.css";
 import NavBar from "@/components/layout/NavBar";
@@ -8958,12 +9172,14 @@ import Link from "next/link";
 import AppBar from "@/components/layout/AppBar";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeProducts } from "@/lib/inventory";
+import ExportMenu from "@/components/layout/ExportMenu";
+import { buildInventoryCsv } from "@/lib/csv-builders";
 
 // Matches the default settings.lowStockThreshold used on org creation
 const LOW_STOCK_THRESHOLD = 5;
 
 export default function InventoryPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { profile } = useAuth();
   const orgId = profile?.orgId;
 
@@ -9042,6 +9258,7 @@ export default function InventoryPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
+              <ExportMenu page="inventory" getData={() => buildInventoryCsv(products)} />
             </div>
             <Link
               href="/barcode"
@@ -9138,6 +9355,862 @@ export default function InventoryPage() {
       </main>
 
       <NavBar />
+    </>
+  );
+}
+</file>
+
+<file path="app/(protected)/invoice/invoice.module.css">
+.invoicePage {
+    padding: 0 0 110px !important;
+    background-color: #f5f7f6;
+    min-height: 100svh;
+}
+
+/* ── Form mode ── */
+.formSection {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 20px 15px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.formSection h2 {
+    margin: 10px 0 0;
+    font-size: var(--fontsize-18);
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.formCard {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 15px;
+    box-sizing: border-box;
+    background-color: white;
+    border-radius: 12px;
+}
+
+.fieldGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* ── Items ── */
+.itemsCard {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    background-color: white;
+    border-radius: 12px;
+}
+
+.itemRow {
+    display: grid;
+    grid-template-columns: 1fr 48px 68px 68px 24px;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.itemRow:last-of-type {
+    border-bottom: none;
+}
+
+.itemDesc,
+.itemQty,
+.itemPrice {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #e3e8e6;
+    border-radius: 8px;
+    background-color: #f5f7f6;
+    font-family: inherit;
+    font-size: var(--fontsize-13);
+    color: var(--dark);
+}
+
+.itemDesc:focus,
+.itemQty:focus,
+.itemPrice:focus {
+    outline: none;
+    border-color: var(--primary);
+    background-color: white;
+}
+
+.itemTotal {
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.removeItemBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 16px;
+    color: #9ca3af;
+}
+
+.removeItemBtn:hover {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.removeItemBtn:disabled {
+    opacity: 0.3;
+}
+
+.addItemBtn {
+    align-self: flex-start;
+    margin-top: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1.5px dashed var(--primary);
+    color: var(--primary);
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+}
+
+/* ── Totals ── */
+.totalsCard {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 15px;
+    box-sizing: border-box;
+    background-color: white;
+    border-radius: 12px;
+}
+
+.totalRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--fontsize-14);
+    color: var(--dark);
+}
+
+.totalRow span:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #666;
+}
+
+.taxInput {
+    height: 24px;
+    width: 56px;
+    padding: 5px 7px;
+    border: 1px solid #e3e8e6;
+    border-radius: 7px;
+    background-color: #f5f7f6;
+    font-size: var(--fontsize-13);
+}
+
+.grandTotal {
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+    font-size: var(--fontsize-18);
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* ── Preview / submit actions ── */
+.previewBtn {
+    margin-top: 10px;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    background-color: var(--primary);
+    color: white;
+    font-size: var(--fontsize-16);
+    font-weight: 600;
+    text-align: center;
+}
+
+.previewBtn:disabled {
+    opacity: 0.5;
+}
+
+.hint {
+    margin: 0;
+    font-size: var(--fontsize-12);
+    color: #888;
+    text-align: center;
+}
+
+/* ── Preview mode ── */
+.previewSection {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 20px 15px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.previewActions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.previewActionsRight {
+    display: flex;
+    gap: 8px;
+}
+
+.backBtn {
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.recordBtn,
+.printBtn {
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+}
+
+.recordBtn {
+    border: 1.5px solid var(--primary);
+    color: var(--primary);
+    background: white;
+}
+
+.recordBtn:disabled {
+    opacity: 0.5;
+}
+
+.printBtn {
+    background-color: var(--primary);
+    color: white;
+}
+
+.savedNote {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    font-weight: 500;
+    color: #15803d;
+}
+
+/* ── The printable sheet itself ── */
+.invoiceSheet {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 24px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: var(--boxshadow);
+}
+
+.sheetHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--primary);
+}
+
+.sheetHeader h1 {
+    margin: 0 0 4px;
+    font-size: var(--fontsize-18);
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.sheetHeader p {
+    margin: 0;
+    font-size: var(--fontsize-12);
+    color: #666;
+    line-height: 1.5;
+}
+
+.sheetMeta {
+    text-align: right;
+}
+
+.sheetMeta h2 {
+    margin: 0 0 4px;
+    font-size: var(--fontsize-20);
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--dark);
+}
+
+.sheetMeta p {
+    margin: 0;
+    font-size: var(--fontsize-12);
+    color: #666;
+}
+
+.sheetBillTo {
+    padding: 16px 0;
+}
+
+.sheetLabel {
+    margin: 0 0 4px;
+    font-size: var(--fontsize-12);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #9ca3af;
+}
+
+.sheetBillName {
+    margin: 0 0 2px;
+    font-size: var(--fontsize-16);
+    font-weight: 600;
+}
+
+.sheetBillTo p {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    color: #555;
+    line-height: 1.5;
+}
+
+.sheetTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.sheetTable th {
+    text-align: left;
+    padding: 8px 6px;
+    font-size: var(--fontsize-12);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #666;
+    border-bottom: 1.5px solid #e5e7eb;
+}
+
+.sheetTable th:not(:first-child),
+.sheetTable td:not(:first-child) {
+    text-align: right;
+}
+
+.sheetTable td {
+    padding: 8px 6px;
+    font-size: var(--fontsize-13);
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.sheetTotals {
+    margin-top: 12px;
+    margin-left: auto;
+    width: 240px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sheetTotalRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--fontsize-13);
+    color: #555;
+}
+
+.sheetGrandTotal {
+    padding-top: 8px;
+    border-top: 1.5px solid var(--primary);
+    font-size: var(--fontsize-16);
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.sheetNotes {
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.sheetNotes p:last-child {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    color: #555;
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+</file>
+
+<file path="app/(protected)/invoice/page.js">
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
+import { addTransaction } from "@/lib/transactions";
+import AppBar from "@/components/layout/AppBar";
+import NavBar from "@/components/layout/NavBar";
+import CustomInput from "@/components/input/CustomInput";
+import styles from "./invoice.module.css";
+
+const money = (n) =>
+  `RM ${Number(n || 0).toLocaleString("en-MY", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+const todayISO = () => new Date().toLocaleDateString("en-CA");
+
+function makeInvoiceNo() {
+  const d = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `INV-${stamp}-${rand}`;
+}
+
+function newItem() {
+  return {
+    id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    description: "",
+    qty: 1,
+    price: "",
+  };
+}
+
+export default function InvoicePage() {
+  const { user, profile } = useAuth();
+  const orgId = profile?.orgId;
+
+  const [mode, setMode] = useState("edit"); // "edit" | "preview"
+  const [saving, setSaving] = useState(false);
+  const [savedNote, setSavedNote] = useState("");
+
+  const [invoiceNo, setInvoiceNo] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState(todayISO());
+  const [dueDate, setDueDate] = useState("");
+
+  const [from, setFrom] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+  });
+  const [to, setTo] = useState({ name: "", phone: "", email: "", address: "" });
+
+  const [items, setItems] = useState([newItem()]);
+  const [taxRate, setTaxRate] = useState("0");
+  const [notes, setNotes] = useState("");
+
+  // One invoice number per visit; the owner can still override it.
+  useEffect(() => {
+    setInvoiceNo(makeInvoiceNo());
+  }, []);
+
+  // Prefill "From" with the organization's name, once.
+  useEffect(() => {
+    if (!orgId) return;
+    getDoc(doc(db, "organizations", orgId))
+      .then((snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        setFrom((f) => ({ ...f, name: f.name || data.name || "" }));
+      })
+      .catch((err) => console.error("Organization read failed:", err));
+  }, [orgId]);
+
+  useEffect(() => {
+    if (profile?.email) {
+      setFrom((f) => ({ ...f, email: f.email || profile.email }));
+    }
+  }, [profile?.email]);
+
+  function updateItem(id, patch) {
+    setItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, ...patch } : it)),
+    );
+  }
+  function addItem() {
+    setItems((prev) => [...prev, newItem()]);
+  }
+  function removeItem(id) {
+    setItems((prev) =>
+      prev.length > 1 ? prev.filter((it) => it.id !== id) : prev,
+    );
+  }
+
+  const lineTotals = useMemo(
+    () => items.map((it) => (Number(it.qty) || 0) * (Number(it.price) || 0)),
+    [items],
+  );
+  const subtotal = useMemo(
+    () => lineTotals.reduce((s, v) => s + v, 0),
+    [lineTotals],
+  );
+  const taxAmount = useMemo(
+    () => (subtotal * (Number(taxRate) || 0)) / 100,
+    [subtotal, taxRate],
+  );
+  const total = subtotal + taxAmount;
+
+  const canPreview = items.some(
+    (it) => it.description.trim() && Number(it.price) > 0,
+  );
+
+  function handlePrint() {
+    window.print();
+  }
+
+  async function handleRecordSale() {
+    if (!orgId || !user || total <= 0 || saving) return;
+    setSaving(true);
+    setSavedNote("");
+    try {
+      await addTransaction({
+        orgId,
+        user,
+        transaction: {
+          type: "in",
+          amount: Number(total.toFixed(2)),
+          category: "sales",
+          description: `Invoice ${invoiceNo}${to.name ? ` — ${to.name}` : ""}`,
+          date: invoiceDate,
+          paymentMethod: "Bank Transfer",
+          note: "Recorded from the E-Invoice page.",
+        },
+      });
+      setSavedNote("Recorded as a sale in your transactions.");
+    } catch (err) {
+      console.error("Record sale failed:", err);
+      setSavedNote("Could not record the sale. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <AppBar title="E-Invoice" />
+      <main className={styles.invoicePage}>
+        {mode === "edit" ? (
+          <section className={styles.formSection}>
+            <h2>From</h2>
+            <div className={styles.formCard}>
+              <CustomInput
+                label="Business Name"
+                value={from.name}
+                onChange={(e) =>
+                  setFrom((f) => ({ ...f, name: e.target.value }))
+                }
+              />
+              <div className={styles.fieldGrid}>
+                <CustomInput
+                  label="Phone"
+                  value={from.phone}
+                  onChange={(e) =>
+                    setFrom((f) => ({ ...f, phone: e.target.value }))
+                  }
+                />
+                <CustomInput
+                  label="Email"
+                  type="email"
+                  value={from.email}
+                  onChange={(e) =>
+                    setFrom((f) => ({ ...f, email: e.target.value }))
+                  }
+                />
+              </div>
+              <CustomInput
+                label="Address"
+                longInput
+                value={from.address}
+                onChange={(e) =>
+                  setFrom((f) => ({ ...f, address: e.target.value }))
+                }
+              />
+            </div>
+
+            <h2>Bill To</h2>
+            <div className={styles.formCard}>
+              <CustomInput
+                label="Customer Name"
+                value={to.name}
+                onChange={(e) => setTo((t) => ({ ...t, name: e.target.value }))}
+              />
+              <div className={styles.fieldGrid}>
+                <CustomInput
+                  label="Phone"
+                  value={to.phone}
+                  onChange={(e) =>
+                    setTo((t) => ({ ...t, phone: e.target.value }))
+                  }
+                />
+                <CustomInput
+                  label="Email"
+                  type="email"
+                  value={to.email}
+                  onChange={(e) =>
+                    setTo((t) => ({ ...t, email: e.target.value }))
+                  }
+                />
+              </div>
+              <CustomInput
+                label="Address"
+                longInput
+                value={to.address}
+                onChange={(e) =>
+                  setTo((t) => ({ ...t, address: e.target.value }))
+                }
+              />
+            </div>
+
+            <h2>Invoice Details</h2>
+            <div className={styles.formCard}>
+              <div className={styles.fieldGrid}>
+                <CustomInput
+                  label="Invoice No"
+                  value={invoiceNo}
+                  onChange={(e) => setInvoiceNo(e.target.value)}
+                />
+                <CustomInput
+                  label="Date"
+                  type="date"
+                  value={invoiceDate}
+                  onChange={(e) => setInvoiceDate(e.target.value)}
+                />
+              </div>
+              <CustomInput
+                label="Due Date (optional)"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+
+            <h2>Items</h2>
+            <div className={styles.itemsCard}>
+              {items.map((it, i) => (
+                <div key={it.id} className={styles.itemRow}>
+                  <input
+                    className={styles.itemDesc}
+                    placeholder="Item description"
+                    value={it.description}
+                    onChange={(e) =>
+                      updateItem(it.id, { description: e.target.value })
+                    }
+                  />
+                  <input
+                    className={styles.itemQty}
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="Qty"
+                    value={it.qty}
+                    onChange={(e) => updateItem(it.id, { qty: e.target.value })}
+                  />
+                  <input
+                    className={styles.itemPrice}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Price"
+                    value={it.price}
+                    onChange={(e) =>
+                      updateItem(it.id, { price: e.target.value })
+                    }
+                  />
+                  <span className={styles.itemTotal}>
+                    {money(lineTotals[i])}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.removeItemBtn}
+                    onClick={() => removeItem(it.id)}
+                    aria-label="Remove item"
+                    disabled={items.length <= 1}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className={styles.addItemBtn}
+                onClick={addItem}
+              >
+                + Add item
+              </button>
+            </div>
+
+            <div className={styles.totalsCard}>
+              <div className={styles.totalRow}>
+                <span>Subtotal</span>
+                <span>{money(subtotal)}</span>
+              </div>
+              <div className={styles.totalRow}>
+                <span>
+                  Tax / SST (%)
+                  <input
+                    className={styles.taxInput}
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={taxRate}
+                    onChange={(e) => setTaxRate(e.target.value)}
+                  />
+                </span>
+                <span>{money(taxAmount)}</span>
+              </div>
+              <div className={`${styles.totalRow} ${styles.grandTotal}`}>
+                <span>Total</span>
+                <span>{money(total)}</span>
+              </div>
+            </div>
+
+            <CustomInput
+              label="Notes (optional)"
+              longInput
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Payment instructions, thank-you note, etc."
+            />
+
+            <button
+              type="button"
+              className={styles.previewBtn}
+              disabled={!canPreview}
+              onClick={() => setMode("preview")}
+            >
+              Preview Invoice
+            </button>
+            {!canPreview && (
+              <p className={styles.hint}>
+                Add at least one item with a description and price to preview.
+              </p>
+            )}
+          </section>
+        ) : (
+          <section className={styles.previewSection}>
+            <div className={styles.previewActions}>
+              <button
+                type="button"
+                className={styles.backBtn}
+                onClick={() => setMode("edit")}
+              >
+                ← Edit
+              </button>
+              <div className={styles.previewActionsRight}>
+                <button
+                  type="button"
+                  className={styles.recordBtn}
+                  onClick={handleRecordSale}
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Record as Sale"}
+                </button>
+                <button
+                  type="button"
+                  className={styles.printBtn}
+                  onClick={handlePrint}
+                >
+                  Print / Save PDF
+                </button>
+              </div>
+            </div>
+            {savedNote && <p className={styles.savedNote}>{savedNote}</p>}
+
+            <div id="invoice-print" className={styles.invoiceSheet}>
+              <div className={styles.sheetHeader}>
+                <div>
+                  <h1>{from.name || "Your Business"}</h1>
+                  {from.address && <p>{from.address}</p>}
+                  {(from.phone || from.email) && (
+                    <p>
+                      {[from.phone, from.email].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                </div>
+                <div className={styles.sheetMeta}>
+                  <h2>INVOICE</h2>
+                  <p>{invoiceNo}</p>
+                  <p>Date: {invoiceDate}</p>
+                  {dueDate && <p>Due: {dueDate}</p>}
+                </div>
+              </div>
+
+              <div className={styles.sheetBillTo}>
+                <p className={styles.sheetLabel}>Bill To</p>
+                <p className={styles.sheetBillName}>{to.name || "-"}</p>
+                {to.address && <p>{to.address}</p>}
+                {(to.phone || to.email) && (
+                  <p>{[to.phone, to.email].filter(Boolean).join(" · ")}</p>
+                )}
+              </div>
+
+              <table className={styles.sheetTable}>
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((it, i) => (
+                    <tr key={it.id}>
+                      <td>{it.description || "-"}</td>
+                      <td>{it.qty || 0}</td>
+                      <td>{money(it.price)}</td>
+                      <td>{money(lineTotals[i])}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className={styles.sheetTotals}>
+                <div className={styles.sheetTotalRow}>
+                  <span>Subtotal</span>
+                  <span>{money(subtotal)}</span>
+                </div>
+                {Number(taxRate) > 0 && (
+                  <div className={styles.sheetTotalRow}>
+                    <span>Tax / SST ({taxRate}%)</span>
+                    <span>{money(taxAmount)}</span>
+                  </div>
+                )}
+                <div
+                  className={`${styles.sheetTotalRow} ${styles.sheetGrandTotal}`}
+                >
+                  <span>Total</span>
+                  <span>{money(total)}</span>
+                </div>
+              </div>
+
+              {notes && (
+                <div className={styles.sheetNotes}>
+                  <p className={styles.sheetLabel}>Notes</p>
+                  <p>{notes}</p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+      </main>
     </>
   );
 }
@@ -11640,6 +12713,9 @@ import NavBar from "@/components/layout/NavBar";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeSummary, blankSummary } from "@/lib/summary";
 import { subscribeProducts, LOW_STOCK_THRESHOLD } from "@/lib/inventory";
+import AppBar from "@/components/layout/AppBar";
+import ExportMenu from "@/components/layout/ExportMenu";
+import { buildSummaryCsv } from "@/lib/csv-builders";
 
 /* ---------- constants (UI only, no backend) ---------- */
 
@@ -12078,8 +13154,14 @@ export default function SummaryPage() {
 
   const barWidth = (n) => `${(n / (stock.total || 1)) * 100}%`;
 
+  const getExportData = () => buildSummaryCsv(current, stock);
+
   return (
     <>
+      <AppBar
+        title="Summary"
+        actionMenu={<ExportMenu page="summary" getData={getExportData}  />}
+      />
       <main className={styles.summaryPage}>
         <section className={styles.topWrapper}>
           <div className={styles.topHeader}>
@@ -13409,7 +14491,7 @@ export default function SubTicketPage() {
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import styles from "./addTicket.module.css";
 import AppBar from "@/components/layout/AppBar";
 import CustomInput from "@/components/input/CustomInput";
@@ -13433,7 +14515,7 @@ const validate = (form) => {
 };
 
 export default function AddTicketPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { user, profile } = useAuth();
   const orgId = profile?.orgId;
 
@@ -13538,12 +14620,14 @@ export default function AddTicketPage() {
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import Link from "next/link";
 import styles from "./ticket.module.css";
 import NavBar from "@/components/layout/NavBar";
 import AppBar from "@/components/layout/AppBar";
 import { useAuth } from "@/context/AuthContext";
+import ExportMenu from "@/components/layout/ExportMenu";
+import { buildReportCsv } from "@/lib/csv-builders";
 import {
   subscribeTickets,
   getStatusMeta,
@@ -13552,7 +14636,7 @@ import {
 } from "@/lib/tickets";
 
 export default function TicketPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { profile } = useAuth();
   const orgId = profile?.orgId;
 
@@ -13591,6 +14675,11 @@ export default function TicketPage() {
         }
         onAction={() => router.push("/ticket/add")}
       />
+
+      <div className={styles.exportMenu}>
+        <p>Export</p>
+        <ExportMenu page="report" getData={() => buildReportCsv(tickets)} />
+      </div>
 
       <main className={styles.ticketPage}>
         {/* ── Section 2: Ticket List ── */}
@@ -13795,6 +14884,7 @@ export default function TicketPage() {
   line-height: 1.5;
   color: #555;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -13845,6 +14935,22 @@ export default function TicketPage() {
   font-size: var(--fontsize-13);
   line-height: 1.5;
   color: #888;
+}
+
+.exportMenu {
+  background-color: var(--primary);
+  padding: 0px 15px 10px;
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 5px;
+}
+
+.exportMenu {
+  font-size: var(--fontsize-13);
+  color: white;
 }
 </file>
 
@@ -14256,7 +15362,7 @@ export default function TransactionDetailPage() {
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import styles from "./addTransaction.module.css";
 import AppBar from "@/components/layout/AppBar";
 import CustomInput from "@/components/input/CustomInput";
@@ -14310,7 +15416,7 @@ const validate = (form) => {
 };
 
 export default function AddTransactionPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { user, profile } = useAuth();
   const orgId = profile?.orgId;
 
@@ -14730,7 +15836,7 @@ export function formatDate(value) {
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import styles from "./transaction.module.css";
 import NavBar from "@/components/layout/NavBar";
 import { useAuth } from "@/context/AuthContext";
@@ -14765,7 +15871,7 @@ function getMonthLabel(key, multipleYears) {
 }
 
 export default function TransactionPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
 
   const { profile } = useAuth();
   const orgId = profile?.orgId;
@@ -15337,6 +16443,7 @@ export default function TransactionPage() {
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import SplashScreen from "@/components/SplashScreen";
 
 export default function ProtectedLayout({ children }) {
   const { user, profile, loading } = useAuth();
@@ -15349,7 +16456,7 @@ export default function ProtectedLayout({ children }) {
     else if (!profile?.orgId) router.replace("/onboarding/welcome");
   }, [loading, user, profile, router]);
 
-  return ready ? children : null;
+  return ready ? children : <SplashScreen />;
 }
 </file>
 
@@ -15427,7 +16534,10 @@ import { useAuth } from "@/context/AuthContext";
 import { loginUser } from "@/lib/auth";
 import styles from "./login.module.css";
 
-const BAD_CREDENTIALS = { field: "password", msg: "Incorrect email or password." };
+const BAD_CREDENTIALS = {
+  field: "password",
+  msg: "Incorrect email or password.",
+};
 
 // Firebase now answers "auth/invalid-credential" for both a wrong password
 // and an unknown email (email enumeration protection), the other two codes
@@ -15437,7 +16547,10 @@ const AUTH_ERRORS = {
   "auth/wrong-password": BAD_CREDENTIALS,
   "auth/user-not-found": BAD_CREDENTIALS,
   "auth/invalid-email": { field: "email", msg: "Enter a valid email address." },
-  "auth/user-disabled": { field: "form", msg: "This account has been disabled." },
+  "auth/user-disabled": {
+    field: "form",
+    msg: "This account has been disabled.",
+  },
   "auth/too-many-requests": {
     field: "form",
     msg: "Too many attempts. Try again in a few minutes.",
@@ -15558,7 +16671,7 @@ export default function LoginPage() {
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import Image from "next/image";
 import styles from "./sales.module.css";
 import { useAuth } from "@/context/AuthContext";
@@ -15572,7 +16685,7 @@ const STEP = 500;
 const formatRM = (n) => `RM ${n.toLocaleString("en-MY")}`;
 
 export default function SalesPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { user } = useAuth();
   const { draft } = useOnboarding();
   const [sales, setSales] = useState(10000);
@@ -15938,7 +17051,7 @@ input.slider[type="range"] {
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import CustomInput from "@/components/input/CustomInput";
 import Image from "next/image";
 import styles from "./organization.module.css";
@@ -15946,7 +17059,7 @@ import { BUSINESS_TYPES } from "@/lib/businessTypes";
 import { useOnboarding } from "@/context/OnboardingContext";
 
 export default function OrganizationPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { draft, setDraft } = useOnboarding();
   const [error, setError] = useState("");
 
@@ -16041,7 +17154,7 @@ export default function OrganizationPage() {
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import CustomInput from "@/components/input/CustomInput";
 import Image from "next/image";
 import styles from "./welcome.module.css";
@@ -16055,7 +17168,7 @@ const JOIN_ERRORS = {
 };
 
 export default function WelcomePage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { user } = useAuth();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -16295,7 +17408,7 @@ export default function OnboardingLayout({ children }) {
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import CustomInput from "@/components/input/CustomInput";
 import Image from "next/image";
 import Link from "next/link";
@@ -16319,7 +17432,7 @@ const AUTH_ERRORS = {
 };
 
 export default function OnboardingPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const [values, setValues] = useState({
     name: "",
     email: "",
@@ -16440,10 +17553,10 @@ export default function OnboardingPage() {
 </file>
 
 <file path="app/(public)/splash/page.js">
+import SplashScreen from "@/components/SplashScreen";
+
 export default function SplashPage() {
-    return (
-        <main></main>
-    );
+  return <SplashScreen />;
 }
 </file>
 
@@ -17508,6 +18621,119 @@ export async function POST(req) {
       { status: 500 }
     );
   }
+}
+</file>
+
+<file path="app/api/sheet/[page]/route.js">
+import { NextResponse } from "next/server";
+
+// In-memory store for short-lived public CSV links, keyed by token.
+// Good enough for a single dev/demo server; it resets on redeploy or
+// cold start, which is fine since links are meant to be used right away.
+const STORE = globalThis.__sheetExportStore ?? new Map();
+globalThis.__sheetExportStore = STORE;
+
+const TTL_MS = 30 * 60 * 1000; // 30 minutes
+const ALLOWED_PAGES = new Set([
+  "summary",
+  "transaction",
+  "report",
+  "inventory",
+]);
+
+function cleanup() {
+  const now = Date.now();
+  for (const [token, entry] of STORE) {
+    if (now - entry.createdAt > TTL_MS) STORE.delete(token);
+  }
+}
+
+function makeToken() {
+  return (
+    crypto.randomUUID?.() ??
+    `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
+}
+
+// POST: client sends { csv, filename }, gets back a public GET url.
+export async function POST(req, { params }) {
+  const { page } = await params;
+  if (!ALLOWED_PAGES.has(page)) {
+    return NextResponse.json(
+      { error: "Unknown export page." },
+      { status: 400 },
+    );
+  }
+
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body." },
+      { status: 400 },
+    );
+  }
+
+  const csv = typeof body?.csv === "string" ? body.csv : "";
+  if (!csv.trim()) {
+    return NextResponse.json({ error: "No data to export." }, { status: 400 });
+  }
+  if (csv.length > 2_000_000) {
+    return NextResponse.json(
+      { error: "Export is too large." },
+      { status: 413 },
+    );
+  }
+
+  cleanup();
+  const token = makeToken();
+  STORE.set(token, {
+    csv,
+    page,
+    filename: typeof body?.filename === "string" ? body.filename : page,
+    createdAt: Date.now(),
+  });
+
+  const url = new URL(`/api/sheet/${page}`, req.url);
+  url.searchParams.set("t", token);
+
+  return NextResponse.json({
+    token,
+    url: url.toString(),
+    expiresInMinutes: 30,
+  });
+}
+
+// GET: public CSV fetch, used for direct download AND for Google Sheets'
+// =IMPORTDATA(url), which fetches the url server-side with no auth/cookies.
+export async function GET(req, { params }) {
+  const { page } = await params;
+  const token = new URL(req.url).searchParams.get("t");
+  if (!token) {
+    return NextResponse.json(
+      { error: "Missing export token." },
+      { status: 400 },
+    );
+  }
+
+  cleanup();
+  const entry = STORE.get(token);
+  if (!entry || entry.page !== page) {
+    return NextResponse.json(
+      { error: "This export link has expired. Please export again." },
+      { status: 404 },
+    );
+  }
+
+  return new NextResponse(entry.csv, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${entry.filename}.csv"`,
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
 }
 </file>
 
@@ -18961,6 +20187,7 @@ export async function POST(req) {
 import "@/styles/globals.css";
 import localFont from "next/font/local";
 import { AuthProvider } from "@/context/AuthContext";
+import PageTransition from "@/components/PageTransition";
 
 const poppins = localFont({
   src: [
@@ -19077,18 +20304,47 @@ const inter = localFont({
 });
 
 export const metadata = {
-  title: "E30S",
-  description: "Hackathon Solution for MSME",
+  title: "Biscoach",
+  description:
+    "AI-powered bookkeeping and inventory assistant for Malaysian SMEs.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/assets/favicon/favicon.ico", sizes: "any" },
+      {
+        url: "/assets/favicon/favicon-16x16.png",
+        sizes: "16x16",
+        type: "image/png",
+      },
+      {
+        url: "/assets/favicon/favicon-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
+      },
+    ],
+    apple: "/assets/favicon/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${poppins.variable} ${inter.variable}`}>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <PageTransition />
+        </AuthProvider>
       </body>
     </html>
   );
+}
+</file>
+
+<file path="app/loading.js">
+import SplashScreen from "@/components/SplashScreen";
+
+export default function Loading() {
+  return <SplashScreen />;
 }
 </file>
 
@@ -20846,12 +22102,438 @@ export default function AppBar({
 }
 </file>
 
+<file path="components/layout/ExportMenu.js">
+"use client";
+
+import { useCallback, useRef, useState } from "react";
+import styles from "./ExportMenu.module.css";
+import useDismiss from "@/components/input/useDismiss";
+import { downloadCsv } from "@/lib/csv";
+
+function Icon({ d, size = 18, strokeWidth = 1.6 }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={strokeWidth}
+      stroke="currentColor"
+      width={size}
+      height={size}
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+    </svg>
+  );
+}
+
+const ICONS = {
+  export:
+    "M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-6L12 15m0 0 4.5-4.5M12 15V3",
+  close: "M6 18 18 6M6 6l12 12",
+  csv: "M9 12h6m-6 3.75h6M9 8.25h6M5.25 3.75h13.5a1.5 1.5 0 0 1 1.5 1.5v13.5a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V5.25a1.5 1.5 0 0 1 1.5-1.5Z",
+  sheets:
+    "M9 3v18M3 9h18M3 15h18M5.25 3h13.5A2.25 2.25 0 0 1 21 5.25v13.5A2.25 2.25 0 0 1 18.75 21H5.25A2.25 2.25 0 0 1 3 18.75V5.25A2.25 2.25 0 0 1 5.25 3Z",
+  copy: "M15.75 17.25v3a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-9a2.25 2.25 0 0 1 2.25-2.25h3m4.5-4.5h9a2.25 2.25 0 0 1 2.25 2.25v9a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-9a2.25 2.25 0 0 1 2.25-2.25Z",
+};
+
+/**
+ * Export menu for a data page (summary / transaction / report / inventory).
+ *
+ *   page     "summary" | "transaction" | "report" | "inventory"
+ *   getData  () => { csv: string, filename: string } — build this lazily
+ *            from whatever the page already has in state/memory.
+ */
+export default function ExportMenu({ page, getData }) {
+  const rootRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [sheet, setSheet] = useState(null); // { url, filename }
+
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss(open, rootRef, close);
+
+  function openMenu() {
+    setError("");
+    setSheet(null);
+    setOpen(true);
+  }
+
+  function handleDownload() {
+    const data = getData();
+    if (!data?.csv) return;
+    downloadCsv(data.filename || page, data.csv);
+    setOpen(false);
+  }
+
+  async function handleGoogleSheets() {
+    const data = getData();
+    if (!data?.csv) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/sheet/${page}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          csv: data.csv,
+          filename: data.filename || page,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json.error || "Could not prepare the export.");
+        return;
+      }
+      setSheet({ url: json.url, filename: data.filename || page });
+    } catch {
+      setError("Could not reach the server. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyFormula() {
+    if (!sheet) return;
+    try {
+      await navigator.clipboard.writeText(`=IMPORTDATA("${sheet.url}")`);
+    } catch {
+      /* clipboard unavailable, the box text is still selectable */
+    }
+  }
+
+  return (
+    <div className={styles.wrapper} ref={rootRef}>
+      <button
+        type="button"
+        className={styles.trigger}
+        onClick={() => (open ? close() : openMenu())}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label="Export"
+      >
+        <Icon d={ICONS.export} />
+      </button>
+
+      {open && (
+        <div className={styles.popover} role="dialog" aria-label="Export">
+          {!sheet ? (
+            <>
+              <div className={styles.header}>
+                <div className={styles.headerText}>
+                  <h3>Export</h3>
+                  <p>Download a copy or open it in Google Sheets.</p>
+                </div>
+                <button
+                  type="button"
+                  className={styles.closeBtn}
+                  onClick={close}
+                  aria-label="Close"
+                >
+                  <Icon d={ICONS.close} size={14} strokeWidth={2} />
+                </button>
+              </div>
+
+              <div className={styles.optionList}>
+                <button
+                  type="button"
+                  className={styles.option}
+                  onClick={handleDownload}
+                >
+                  <span className={styles.optionIcon}>
+                    <Icon d={ICONS.csv} size={17} />
+                  </span>
+                  <span className={styles.optionText}>
+                    <p>Download CSV</p>
+                    <p>Save a file to your device</p>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className={styles.option}
+                  onClick={handleGoogleSheets}
+                  disabled={busy}
+                >
+                  <span className={styles.optionIcon}>
+                    <Icon d={ICONS.sheets} size={17} />
+                  </span>
+                  <span className={styles.optionText}>
+                    <p>{busy ? "Preparing..." : "Open in Google Sheets"}</p>
+                    <p>Get a link to import the data</p>
+                  </span>
+                </button>
+              </div>
+
+              {error && <p className={styles.errorText}>{error}</p>}
+            </>
+          ) : (
+            <div className={styles.resultPanel}>
+              <div className={styles.header}>
+                <div className={styles.headerText}>
+                  <h3>Paste into Sheets</h3>
+                  <p>In any cell of a new Google Sheet, paste:</p>
+                </div>
+                <button
+                  type="button"
+                  className={styles.closeBtn}
+                  onClick={close}
+                  aria-label="Close"
+                >
+                  <Icon d={ICONS.close} size={14} strokeWidth={2} />
+                </button>
+              </div>
+
+              <div className={styles.formulaBox}>
+                {`=IMPORTDATA("${sheet.url}")`}
+              </div>
+
+              <div className={styles.resultActions}>
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  onClick={copyFormula}
+                >
+                  Copy formula
+                </button>
+                <a
+                  className={styles.primaryBtn}
+                  href="https://sheets.new"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  New Sheet
+                </a>
+              </div>
+
+              <p className={styles.resultHint}>
+                The link stays active for 30 minutes. If the data changes,
+                export again.
+              </p>
+
+              <button
+                type="button"
+                className={styles.backBtn}
+                onClick={() => setSheet(null)}
+              >
+                ← Back
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="components/layout/ExportMenu.module.css">
+.wrapper {
+    position: relative;
+}
+
+.trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    color: inherit;
+}
+
+.popover {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 10px);
+    right: 0;
+    box-sizing: border-box;
+    width: 260px;
+    padding: 14px;
+    background-color: var(--light);
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(17, 24, 39, 0.18);
+    color: var(--dark);
+    animation: pop 0.14s ease-out;
+}
+
+@keyframes pop {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.headerText h3 {
+    margin: 0;
+    font-size: var(--fontsize-14);
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.headerText p {
+    margin: 3px 0 0;
+    font-size: var(--fontsize-12);
+    color: #888;
+    line-height: 1.4;
+}
+
+.closeBtn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: #9ca3af;
+}
+
+.closeBtn:hover {
+    background-color: #f1f3f7;
+    color: var(--dark);
+}
+
+.optionList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 8px;
+    border-radius: 10px;
+    text-align: left;
+}
+
+.option:hover {
+    background-color: #f1f3f7;
+}
+
+.option:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.optionIcon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background-color: #f5f7f6;
+    color: var(--primary);
+}
+
+.optionText {
+    min-width: 0;
+    flex: 1;
+}
+
+.optionText p:first-child {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.optionText p:last-child {
+    margin: 1px 0 0;
+    font-size: var(--fontsize-12);
+    color: #888;
+}
+
+.errorText {
+    margin: 8px 2px 0;
+    font-size: var(--fontsize-12);
+    font-weight: 500;
+    color: #dc2626;
+}
+
+/* ── Google Sheets result panel ── */
+.resultPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.formulaBox {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: #f5f7f6;
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--dark);
+    word-break: break-all;
+}
+
+.resultActions {
+    display: flex;
+    gap: 8px;
+}
+
+.primaryBtn,
+.secondaryBtn {
+    flex: 1;
+    text-align: center;
+    padding: 9px 0;
+    border-radius: 999px;
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+}
+
+.primaryBtn {
+    background-color: var(--primary);
+    color: white;
+}
+
+.secondaryBtn {
+    border: 1.5px solid #e3e8e6;
+    color: var(--dark);
+}
+
+.resultHint {
+    margin: 0;
+    font-size: var(--fontsize-12);
+    color: #888;
+    line-height: 1.5;
+}
+
+.backBtn {
+    align-self: flex-start;
+    font-size: var(--fontsize-12);
+    font-weight: 600;
+    color: var(--primary);
+}
+</file>
+
 <file path="components/layout/NavBar.js">
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import styles from "./NavBar.module.css";
+import Link from "next/link";
+import useSplashRouter from "@/lib/useSplashRouter";
 
 const OPTIONS = {
   left: {
@@ -20956,7 +22638,7 @@ function NavIcon({ type, size = 26 }) {
 
 export default function NavBar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const router = useSplashRouter();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -21080,7 +22762,7 @@ export default function NavBar() {
     <>
       <nav className={styles.NavBarWrapper} aria-label="Main navigation">
         {navItems.slice(0, 2).map((item) => (
-          <a
+          <Link
             key={item.href}
             href={item.href}
             aria-label={item.label}
@@ -21089,7 +22771,7 @@ export default function NavBar() {
           >
             <NavIcon type={item.icon} />
             <p>{item.label}</p>
-          </a>
+          </Link>
         ))}
 
         <button
@@ -21119,7 +22801,7 @@ export default function NavBar() {
         </button>
 
         {navItems.slice(2).map((item) => (
-          <a
+          <Link
             key={item.href}
             href={item.href}
             aria-label={item.label}
@@ -21128,7 +22810,7 @@ export default function NavBar() {
           >
             <NavIcon type={item.icon} />
             <p>{item.label}</p>
-          </a>
+          </Link>
         ))}
       </nav>
 
@@ -21405,6 +23087,253 @@ export default function NavBar() {
 }
 </file>
 
+<file path="components/PageTransition.js">
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import SplashScreen from "./SplashScreen";
+import styles from "./PageTransition.module.css";
+
+const EVENT = "page-transition-start";
+const FADE_MS = 500; // keep in sync with the CSS
+const MAX_WAIT_MS = 4000; // safety: never leave the splash stuck
+
+/** Call this right before a programmatic navigation (router.push etc). */
+export function startPageTransition(href) {
+  window.dispatchEvent(new CustomEvent(EVENT, { detail: { href } }));
+}
+
+export default function PageTransition() {
+  const pathname = usePathname();
+  const [phase, setPhase] = useState("idle"); // idle | cover | fade
+  const phaseRef = useRef("idle");
+  const timers = useRef([]);
+
+  const go = (next) => {
+    phaseRef.current = next;
+    setPhase(next);
+  };
+  const later = (fn, ms) => timers.current.push(setTimeout(fn, ms));
+  const clearTimers = () => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+  };
+
+  const fadeOut = () => {
+    clearTimers();
+    go("fade");
+    later(() => go("idle"), FADE_MS);
+  };
+
+  const cover = () => {
+    clearTimers();
+    go("cover");
+    later(fadeOut, MAX_WAIT_MS);
+  };
+
+  // Navigation started
+  useEffect(() => {
+    const samePath = (href) => {
+      try {
+        const url = new URL(href, window.location.href);
+        return (
+          url.origin === window.location.origin &&
+          url.pathname === window.location.pathname
+        );
+      } catch {
+        return true;
+      }
+    };
+
+    const onClick = (e) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+        return;
+      const a = e.target.closest?.("a[href]");
+      if (!a || a.hasAttribute("download")) return;
+      if (a.target && a.target !== "_self") return;
+      const url = new URL(a.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      if (samePath(a.href)) return;
+      cover();
+    };
+
+    const onProgrammatic = (e) => {
+      const href = e.detail?.href;
+      if (href && samePath(href)) return;
+      cover();
+    };
+
+    document.addEventListener("click", onClick, true);
+    window.addEventListener(EVENT, onProgrammatic);
+    window.addEventListener("popstate", cover); // router.back() / browser back
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      window.removeEventListener(EVENT, onProgrammatic);
+      window.removeEventListener("popstate", cover);
+      clearTimers();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // New route committed -> reveal it
+  useEffect(() => {
+    if (phaseRef.current !== "cover") return;
+    const id = requestAnimationFrame(() => requestAnimationFrame(fadeOut));
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  return (
+    <div
+      className={`${styles.overlay} ${
+        phase === "cover" ? styles.cover : phase === "fade" ? styles.fade : ""
+      }`}
+      aria-hidden="true"
+    >
+      <SplashScreen />
+    </div>
+  );
+}
+</file>
+
+<file path="components/PageTransition.module.css">
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    /* above SplashScreen's own 2000 */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Instant: no transition on the way in */
+.cover {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: none;
+}
+
+/* Slow fade out, revealing the new page */
+.fade {
+    opacity: 0;
+    visibility: visible;
+    transition: opacity 500ms ease-out, visibility 0s linear 500ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fade {
+        transition-duration: 1ms;
+    }
+}
+</file>
+
+<file path="components/SplashScreen.js">
+import Image from "next/image";
+import styles from "./SplashScreen.module.css";
+
+export default function SplashScreen() {
+  return (
+    <main className={styles.splash}>
+      <div className={styles.center}>
+        <Image
+          className={styles.mascot}
+          src="/assets/biscoach/think.png"
+          alt="Biscoach"
+          width={220}
+          height={220}
+          priority
+        />
+      </div>
+
+      <div className={styles.bottom}>
+        <Image
+          src="/assets/biscoach/logo.png"
+          alt="Biscoach"
+          width={150}
+          height={45}
+          priority
+        />
+        <p>Your smart business assistant</p>
+      </div>
+    </main>
+  );
+}
+</file>
+
+<file path="components/SplashScreen.module.css">
+.splash {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100svw;
+    height: 100svh;
+    padding: 0;
+    background-color: #f5f7f6;
+    animation: fadeIn 0.35s ease-out;
+}
+
+.center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mascot {
+    animation: float 2.4s ease-in-out infinite;
+}
+
+.bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 40px);
+}
+
+.bottom p {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    font-weight: 500;
+    color: #8a8fa3;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mascot {
+        animation: none;
+    }
+}
+</file>
+
 <file path="context/AuthContext.js">
 "use client";
 
@@ -21470,17 +23399,10 @@ export const useAuth = () => useContext(AuthContext);
 import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthContext";
+import SplashScreen from "@/components/SplashScreen";
 
 const OnboardingContext = createContext(null);
 
-/**
- * Wraps every /onboarding/* route. Holds the half-finished org answers
- * between steps and redirects based on auth state:
- *
- *   signed out            -> /onboarding (register)
- *   signed in, has org    -> /home
- *   signed in, no org     -> stay in the flow (register page forwards to /welcome)
- */
 export function OnboardingProvider({ children }) {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
@@ -21497,10 +23419,9 @@ export function OnboardingProvider({ children }) {
     else if (!user && !isRegisterStep) router.replace("/onboarding");
   }, [loading, user, hasOrg, isRegisterStep, router]);
 
-  // Avoid flashing a step that is about to redirect
-  if (loading) return null;
-  if (user && (hasOrg || isRegisterStep)) return null;
-  if (!user && !isRegisterStep) return null;
+  if (loading) return <SplashScreen />;
+  if (user && (hasOrg || isRegisterStep)) return <SplashScreen />;
+  if (!user && !isRegisterStep) return <SplashScreen />;
 
   return (
     <OnboardingContext.Provider value={{ draft, setDraft }}>
@@ -23618,6 +25539,223 @@ export const CHECKLIST_TOTAL = CHECKLIST.reduce(
 );
 </file>
 
+<file path="lib/csv-builders.js">
+import { toCsv } from "@/lib/csv";
+
+const money = (n) => Number(n || 0).toFixed(2);
+
+/**
+ * Builds the CSV for the Summary page from what the page already has
+ * in state: `current` (the period's summary object) and `stock`
+ * (the derived inventory-health object).
+ */
+export function buildSummaryCsv(current, stock) {
+  const rows = [];
+
+  // Section: period trend (sales / spending / gross / net per label)
+  rows.push({ section: "Performance", metric: "Period", value: current.note });
+  current.labels.forEach((label, i) => {
+    rows.push({
+      section: "Performance",
+      metric: `${label} — Sales`,
+      value: money(current.sales[i]),
+    });
+    rows.push({
+      section: "Performance",
+      metric: `${label} — Spending`,
+      value: money(current.spending[i]),
+    });
+    rows.push({
+      section: "Performance",
+      metric: `${label} — Gross Profit`,
+      value: money(current.gross[i]),
+    });
+    rows.push({
+      section: "Performance",
+      metric: `${label} — Net Profit`,
+      value: money(current.net[i]),
+    });
+  });
+
+  // Section: spending breakdown by category
+  current.breakdown.forEach((b) => {
+    rows.push({
+      section: "Spending Breakdown",
+      metric: b.name,
+      value: `${b.percent}%`,
+    });
+  });
+
+  // Section: stock health
+  rows.push({ section: "Stock", metric: "Units on hand", value: stock.units });
+  rows.push({
+    section: "Stock",
+    metric: "Inventory value (cost)",
+    value: money(stock.value),
+  });
+  rows.push({
+    section: "Stock",
+    metric: "In stock %",
+    value: `${stock.pctIn}%`,
+  });
+  rows.push({
+    section: "Stock",
+    metric: "Low stock %",
+    value: `${stock.pctLow}%`,
+  });
+  rows.push({
+    section: "Stock",
+    metric: "Out of stock %",
+    value: `${stock.pctOut}%`,
+  });
+  stock.byCategory.forEach((c) => {
+    rows.push({
+      section: "Stock by Category",
+      metric: c.name,
+      value: `${c.sold} units`,
+    });
+  });
+  stock.alerts.forEach((a) => {
+    rows.push({
+      section: "Low Stock Alerts",
+      metric: a.name,
+      value: `${a.stock} left`,
+    });
+  });
+
+  const csv = toCsv(rows, [
+    { key: "section", label: "Section" },
+    { key: "metric", label: "Metric" },
+    { key: "value", label: "Value" },
+  ]);
+
+  const filename = `summary-${current.title.toLowerCase().replace(/\s+/g, "-")}`;
+  return { csv, filename };
+}
+
+/**
+ * Transaction page: `transactions` is the month's full list from
+ * subscribeMonthTransactions, `month` is the "yyyy-MM" key.
+ */
+export function buildTransactionCsv(transactions, month) {
+  const rows = transactions.map((t) => ({
+    date: new Date(t.date).toLocaleDateString("en-CA"),
+    type: t.type === "earning" ? "Earning" : "Spending",
+    description: t.title,
+    category: t.category,
+    amount: money(t.amount),
+    method: t.method,
+    reference: t.reference,
+    note: t.note || "",
+  }));
+
+  const csv = toCsv(rows, [
+    { key: "date", label: "Date" },
+    { key: "type", label: "Type" },
+    { key: "description", label: "Description" },
+    { key: "category", label: "Category" },
+    { key: "amount", label: "Amount (RM)" },
+    { key: "method", label: "Payment Method" },
+    { key: "reference", label: "Reference" },
+    { key: "note", label: "Note" },
+  ]);
+
+  return { csv, filename: `transactions-${month}` };
+}
+
+/**
+ * Report (tickets) page: `tickets` is the full list from subscribeTickets.
+ */
+export function buildReportCsv(tickets) {
+  const rows = tickets.map((t) => ({
+    ticketNo: t.ticketNo,
+    title: t.title,
+    status: t.status,
+    priority: t.priority,
+    category: t.category,
+    created: t.createdLabel,
+    resolved: t.resolvedLabel || "",
+    reportedBy: t.reportedBy?.name || "",
+    description: t.description,
+  }));
+
+  const csv = toCsv(rows, [
+    { key: "ticketNo", label: "Ticket No" },
+    { key: "title", label: "Title" },
+    { key: "status", label: "Status" },
+    { key: "priority", label: "Priority" },
+    { key: "category", label: "Category" },
+    { key: "created", label: "Created" },
+    { key: "resolved", label: "Resolved" },
+    { key: "reportedBy", label: "Reported By" },
+    { key: "description", label: "Description" },
+  ]);
+
+  return { csv, filename: "reports" };
+}
+
+/**
+ * Inventory page: `products` is the full list from subscribeProducts.
+ */
+export function buildInventoryCsv(products) {
+  const rows = products.map((p) => ({
+    name: p.name,
+    category: p.category,
+    stock: p.stock,
+    cost: money(p.cost),
+    price: money(p.price),
+    dueDate: p.dueDate || "",
+    barcode: p.barcode || "",
+  }));
+
+  const csv = toCsv(rows, [
+    { key: "name", label: "Product Name" },
+    { key: "category", label: "Category" },
+    { key: "stock", label: "Stock" },
+    { key: "cost", label: "Cost (RM)" },
+    { key: "price", label: "Price (RM)" },
+    { key: "dueDate", label: "Due Date" },
+    { key: "barcode", label: "Barcode" },
+  ]);
+
+  return { csv, filename: "inventory" };
+}
+</file>
+
+<file path="lib/csv.js">
+// Generic CSV builder + browser download trigger, shared by the
+// summary / transaction / report / inventory export menus.
+
+function escapeCell(value) {
+  const str = value === null || value === undefined ? "" : String(value);
+  // Quote anything with a comma, quote, or newline; escape inner quotes.
+  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
+/**
+ * rows: array of plain objects
+ * columns: [{ key, label }] — controls column order + header text
+ */
+export function toCsv(rows, columns) {
+  const header = columns.map((c) => escapeCell(c.label)).join(",");
+  const body = rows
+    .map((row) => columns.map((c) => escapeCell(row[c.key])).join(","))
+    .join("\n");
+  return `${header}\n${body}`;
+}
+
+/** Triggers a browser download of a CSV string. */
+export function downloadCsv(filename, csvString) {
+  const blob = new Blob([csvString], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</file>
+
 <file path="lib/firebase.js">
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -25040,6 +27178,32 @@ export async function creditStatus() {
 export const publicCredit = (c) => ({ level: c.level, percentLeft: c.percentLeft, message: c.message });
 </file>
 
+<file path="lib/useSplashRouter.js">
+"use client";
+
+import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { startPageTransition } from "@/components/PageTransition";
+
+export default function useSplashRouter() {
+  const router = useRouter();
+  return useMemo(
+    () => ({
+      ...router,
+      push: (href, opts) => {
+        startPageTransition(href);
+        router.push(href, opts);
+      },
+      replace: (href, opts) => {
+        startPageTransition(href);
+        router.replace(href, opts);
+      },
+    }),
+    [router],
+  );
+}
+</file>
+
 <file path="styles/globals.css">
 :root {
   --Poppins: var(--font-poppins), sans-serif;
@@ -25270,6 +27434,25 @@ summary::-webkit-details-marker {
 
   body {
     padding: 0;
+  }
+}
+
+/* ── Invoice print layout ── */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #invoice-print,
+  #invoice-print * {
+    visibility: visible;
+  }
+  #invoice-print {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 24px;
+    box-sizing: border-box;
   }
 }
 </file>

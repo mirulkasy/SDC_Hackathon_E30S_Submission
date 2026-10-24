@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import CustomInput from "@/components/input/CustomInput";
 import Image from "next/image";
 import Link from "next/link";
@@ -25,7 +25,7 @@ const AUTH_ERRORS = {
 };
 
 export default function OnboardingPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const [values, setValues] = useState({
     name: "",
     email: "",

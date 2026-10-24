@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import styles from "./addTicket.module.css";
 import AppBar from "@/components/layout/AppBar";
 import CustomInput from "@/components/input/CustomInput";
@@ -25,7 +25,7 @@ const validate = (form) => {
 };
 
 export default function AddTicketPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { user, profile } = useAuth();
   const orgId = profile?.orgId;
 

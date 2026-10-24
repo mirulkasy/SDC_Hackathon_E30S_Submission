@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import styles from "./subInventory.module.css";
 import CustomInput from "@/components/input/CustomInput";
 import CustomSelect from "@/components/input/CustomSelect";
@@ -85,7 +86,7 @@ export default function SubInventoryPage() {
   const [sugLoading, setSugLoading] = useState(false);
   const [sugError, setSugError] = useState("");
 
-  const router = useRouter();
+  const router = useSplashRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const menuRef = useRef(null);

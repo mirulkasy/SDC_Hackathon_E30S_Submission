@@ -1,6 +1,7 @@
 import "@/styles/globals.css";
 import localFont from "next/font/local";
 import { AuthProvider } from "@/context/AuthContext";
+import PageTransition from "@/components/PageTransition";
 
 const poppins = localFont({
   src: [
@@ -117,15 +118,36 @@ const inter = localFont({
 });
 
 export const metadata = {
-  title: "E30S",
-  description: "Hackathon Solution for MSME",
+  title: "Biscoach",
+  description:
+    "AI-powered bookkeeping and inventory assistant for Malaysian SMEs.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/assets/favicon/favicon.ico", sizes: "any" },
+      {
+        url: "/assets/favicon/favicon-16x16.png",
+        sizes: "16x16",
+        type: "image/png",
+      },
+      {
+        url: "/assets/favicon/favicon-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
+      },
+    ],
+    apple: "/assets/favicon/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${poppins.variable} ${inter.variable}`}>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <PageTransition />
+        </AuthProvider>
       </body>
     </html>
   );

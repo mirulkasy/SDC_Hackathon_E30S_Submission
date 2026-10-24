@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import SplashScreen from "@/components/SplashScreen";
 
 export default function ProtectedLayout({ children }) {
   const { user, profile, loading } = useAuth();
@@ -15,5 +16,5 @@ export default function ProtectedLayout({ children }) {
     else if (!profile?.orgId) router.replace("/onboarding/welcome");
   }, [loading, user, profile, router]);
 
-  return ready ? children : null;
+  return ready ? children : <SplashScreen />;
 }

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import styles from "./transaction.module.css";
 import NavBar from "@/components/layout/NavBar";
 import { useAuth } from "@/context/AuthContext";
@@ -37,7 +37,7 @@ function getMonthLabel(key, multipleYears) {
 }
 
 export default function TransactionPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
 
   const { profile } = useAuth();
   const orgId = profile?.orgId;

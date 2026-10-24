@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import Image from "next/image";
 import styles from "./inventory.module.css";
 import NavBar from "@/components/layout/NavBar";
@@ -16,7 +16,7 @@ import { buildInventoryCsv } from "@/lib/csv-builders";
 const LOW_STOCK_THRESHOLD = 5;
 
 export default function InventoryPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { profile } = useAuth();
   const orgId = profile?.orgId;
 

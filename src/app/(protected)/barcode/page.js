@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { useAuth } from "@/context/AuthContext";
@@ -23,7 +23,7 @@ const HINTS = new Map([
 ]);
 
 export default function BarcodePage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { profile } = useAuth();
   const orgId = profile?.orgId;
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import CustomInput from "@/components/input/CustomInput";
 import Image from "next/image";
 import styles from "./organization.module.css";
@@ -9,7 +9,7 @@ import { BUSINESS_TYPES } from "@/lib/businessTypes";
 import { useOnboarding } from "@/context/OnboardingContext";
 
 export default function OrganizationPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { draft, setDraft } = useOnboarding();
   const [error, setError] = useState("");
 

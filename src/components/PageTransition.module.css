@@ -1,0 +1,30 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    /* above SplashScreen's own 2000 */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Instant: no transition on the way in */
+.cover {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: none;
+}
+
+/* Slow fade out, revealing the new page */
+.fade {
+    opacity: 0;
+    visibility: visible;
+    transition: opacity 500ms ease-out, visibility 0s linear 500ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fade {
+        transition-duration: 1ms;
+    }
+}

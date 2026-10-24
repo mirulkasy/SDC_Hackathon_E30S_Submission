@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import Image from "next/image";
 import styles from "./sales.module.css";
 import { useAuth } from "@/context/AuthContext";
@@ -15,7 +15,7 @@ const STEP = 500;
 const formatRM = (n) => `RM ${n.toLocaleString("en-MY")}`;
 
 export default function SalesPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { user } = useAuth();
   const { draft } = useOnboarding();
   const [sales, setSales] = useState(10000);

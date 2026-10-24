@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import styles from "./NavBar.module.css";
+import Link from "next/link";
+import useSplashRouter from "@/lib/useSplashRouter";
 
 const OPTIONS = {
   left: {
@@ -107,7 +109,7 @@ function NavIcon({ type, size = 26 }) {
 
 export default function NavBar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const router = useSplashRouter();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -231,7 +233,7 @@ export default function NavBar() {
     <>
       <nav className={styles.NavBarWrapper} aria-label="Main navigation">
         {navItems.slice(0, 2).map((item) => (
-          <a
+          <Link
             key={item.href}
             href={item.href}
             aria-label={item.label}
@@ -240,7 +242,7 @@ export default function NavBar() {
           >
             <NavIcon type={item.icon} />
             <p>{item.label}</p>
-          </a>
+          </Link>
         ))}
 
         <button
@@ -270,7 +272,7 @@ export default function NavBar() {
         </button>
 
         {navItems.slice(2).map((item) => (
-          <a
+          <Link
             key={item.href}
             href={item.href}
             aria-label={item.label}
@@ -279,7 +281,7 @@ export default function NavBar() {
           >
             <NavIcon type={item.icon} />
             <p>{item.label}</p>
-          </a>
+          </Link>
         ))}
       </nav>
 

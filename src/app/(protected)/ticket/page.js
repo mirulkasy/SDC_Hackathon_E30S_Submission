@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import Link from "next/link";
 import styles from "./ticket.module.css";
 import NavBar from "@/components/layout/NavBar";
@@ -17,7 +17,7 @@ import {
 } from "@/lib/tickets";
 
 export default function TicketPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { profile } = useAuth();
   const orgId = profile?.orgId;
 

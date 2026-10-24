@@ -452,8 +452,6 @@ export default function InvoicePage() {
           </section>
         )}
       </main>
-
-      <NavBar />
     </>
   );
 }

@@ -43,7 +43,7 @@ const validate = (form) => {
 };
 
 export default function AddInventoryPage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const searchParams = useSearchParams();
   const { user, profile } = useAuth();
   const orgId = profile?.orgId;

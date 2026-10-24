@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import useSplashRouter from "@/lib/useSplashRouter";
 import CustomInput from "@/components/input/CustomInput";
 import Image from "next/image";
 import styles from "./welcome.module.css";
@@ -15,7 +15,7 @@ const JOIN_ERRORS = {
 };
 
 export default function WelcomePage() {
-  const router = useRouter();
+  const router = useSplashRouter();
   const { user } = useAuth();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
