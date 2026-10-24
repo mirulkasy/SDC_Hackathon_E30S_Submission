@@ -6,7 +6,7 @@
 
 /* ── Section 1: Preview header ── */
 .topWrapper {
-    width: 100svw;
+    width: 100%;
     padding: 10px 20px 20px;
     box-sizing: border-box;
     background-color: var(--primary);

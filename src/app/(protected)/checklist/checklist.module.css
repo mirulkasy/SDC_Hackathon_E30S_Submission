@@ -6,7 +6,7 @@
 
 /* ── Section 1: Top wrapper ── */
 .topWrapper {
-    width: 100svw;
+    width: 100%;
     padding: 20px;
     box-sizing: border-box;
     background-color: var(--primary);

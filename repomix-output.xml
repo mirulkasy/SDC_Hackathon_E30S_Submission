@@ -5303,7 +5303,7 @@ export default function ChatPage() {
 
 /* ── Section 1: Top wrapper ── */
 .topWrapper {
-    width: 100svw;
+    width: 100%;
     padding: 20px;
     box-sizing: border-box;
     background-color: var(--primary);
@@ -5648,7 +5648,7 @@ export default function ChecklistPage() {
 }
 
 .topWrapper {
-    width: 100svw;
+    width: 100%;
     padding: 20px;
     box-sizing: border-box;
     background-color: var(--primary);
@@ -8142,7 +8142,7 @@ export default function SubInventoryPage() {
 
 /* ── Section 1: Top wrapper ── */
 .topWrapper {
-  width: 100svw;
+  width: 100%;
   padding: 0 20px 20px;
   box-sizing: border-box;
   background-color: var(--primary);
@@ -8470,7 +8470,7 @@ export default function SubInventoryPage() {
 
 /* ── Section 1: Top wrapper ── */
 .topWrapper {
-  width: 100svw;
+  width: 100%;
   padding: 0 20px 20px;
   box-sizing: border-box;
   background-color: var(--primary);
@@ -12032,7 +12032,7 @@ export default function PublicityPage() {
 
 /* ── Section 1: Top wrapper + chart ── */
 .topWrapper {
-    width: 100svw;
+    width: 100%;
     padding: 20px;
     box-sizing: border-box;
     background-color: var(--primary);
@@ -13452,7 +13452,7 @@ export default function SummaryPage() {
 }
 
 .topWrapper {
-    width: 100svw;
+    width: 100%;
     padding: 20px;
     box-sizing: border-box;
     background-color: var(--primary);
@@ -15123,7 +15123,7 @@ export default function TransactionDetailPage() {
 
 /* ── Section 1: Top wrapper ── */
 .topWrapper {
-  width: 100svw;
+  width: 100%;
   padding: 20px;
   box-sizing: border-box;
   background-color: var(--primary);
@@ -15226,7 +15226,7 @@ export default function TransactionDetailPage() {
 
 /* ── Section 1: Preview header ── */
 .topWrapper {
-    width: 100svw;
+    width: 100%;
     padding: 10px 20px 20px;
     box-sizing: border-box;
     background-color: var(--primary);
@@ -22059,7 +22059,7 @@ export default function AppBar({
 
 <file path="components/layout/AppBar.module.css">
 .topBar {
-    width: 100svw;
+    width: 100%;
     padding: 20px;
     box-sizing: border-box;
     background-color: var(--primary);
@@ -23272,7 +23272,7 @@ export default function SplashScreen() {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100svw;
+    width: 100%;
     height: 100svh;
     padding: 0;
     background-color: #f5f7f6;

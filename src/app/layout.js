@@ -1,4 +1,5 @@
 import "@/styles/globals.css";
+import styles from "@/styles/mobile.module.css";
 import localFont from "next/font/local";
 import { AuthProvider } from "@/context/AuthContext";
 import PageTransition from "@/components/PageTransition";
@@ -144,10 +145,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${poppins.variable} ${inter.variable}`}>
       <body>
+        <section className={styles.mobileView}>
         <AuthProvider>
           {children}
           <PageTransition />
         </AuthProvider>
+        </section>
       </body>
     </html>
   );
