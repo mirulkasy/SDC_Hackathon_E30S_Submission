@@ -24,6 +24,7 @@
 | Live Demo         | https://biscoach.replit.app/                   |
 | RunPod Endpoint   | - (not used; see "How We Use RunPod")          |
 | Slide Deck        | https://drive.google.com/file/d/10KWdlsVsu1d8qGRRKwfzjj6zQDljuT9Z/view?usp=sharing |
+| Slide Deck (Google Slides) | https://docs.google.com/presentation/d/1LM5fUrpRXWWWBNA-L6Gla4j2SCmFBqKN/edit?usp=sharing |
 | Demo Video        | https://youtu.be/Z6rvl3wj3ts                   |
 
 ---
