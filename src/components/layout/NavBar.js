@@ -7,15 +7,15 @@ import styles from "./NavBar.module.css";
 const OPTIONS = {
   left: {
     label: "Files",
-    subtitle: "Your files",
-    href: null,
+    subtitle: "Upload from your device",
+    href: "/image?source=files",
     color: "#8494d6",
     icon: "files",
   },
   top: {
     label: "Camera",
     subtitle: "Take a photo",
-    href: null,
+    href: "/image?source=camera",
     color: "#329de8",
     icon: "camera",
   },
@@ -77,29 +77,29 @@ function NavIcon({ type, size = 26 }) {
     case "files":
       return (
         <svg {...common}>
-          <path d="M5 6h14M5 12h14M5 18h14" />
+          <path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
         </svg>
       );
 
     case "camera":
       return (
         <svg {...common}>
-          <path d="M4 7h4l2-3h4l2 3h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" />
-          <circle cx="12" cy="13" r="4" />
+          <path d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+          <path d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
         </svg>
       );
 
     case "barcode":
       return (
         <svg {...common}>
-          <path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14" />
+          <path d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5ZM6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75Z" />
         </svg>
       );
 
     default:
       return (
         <svg {...common}>
-          <path d="M12 5v14M5 12h14" />
+          <path d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
       );
   }
@@ -119,8 +119,10 @@ export default function NavBar() {
   const pointerRef = useRef(null);
   const startRef = useRef({ x: 0, y: 0 });
 
-  const isActive = (href) =>
-    pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href) => {
+    const base = href.split("?")[0];
+    return pathname === base || pathname.startsWith(`${base}/`);
+  };
 
   const cls = (href, extra = "") =>
     `${styles.navAction} ${extra} ${
@@ -148,30 +150,23 @@ export default function NavBar() {
 
   const startHold = (event) => {
     if (event.button !== undefined && event.button !== 0) return;
-
     clearTimeout(timerRef.current);
     pointerRef.current = event.pointerId;
     startRef.current = { x: event.clientX, y: event.clientY };
     selectedRef.current = null;
-
-    // Prevent touch scrolling while performing the hold gesture.
     event.currentTarget.setPointerCapture?.(event.pointerId);
-
     timerRef.current = setTimeout(openMenu, 350);
   };
 
   const updateSelection = useCallback(
     (x, y) => {
       if (!menuOpenRef.current) return;
-
       const dx = x - startRef.current.x;
       const dy = y - startRef.current.y;
-
       if (Math.hypot(dx, dy) < 28) {
         chooseOption(null);
         return;
       }
-
       if (Math.abs(dx) > Math.abs(dy)) {
         chooseOption(dx < 0 ? "left" : "right");
       } else {
@@ -182,15 +177,12 @@ export default function NavBar() {
   );
 
   const moveHold = (event) => {
-    if (pointerRef.current !== null && event.pointerId !== pointerRef.current) {
+    if (pointerRef.current !== null && event.pointerId !== pointerRef.current)
       return;
-    }
-
     if (menuOpenRef.current) {
       updateSelection(event.clientX, event.clientY);
       return;
     }
-
     if (
       Math.hypot(
         event.clientX - startRef.current.x,
@@ -204,36 +196,24 @@ export default function NavBar() {
   const finishHold = useCallback(() => {
     clearTimeout(timerRef.current);
     pointerRef.current = null;
-
     if (!menuOpenRef.current) return;
-
     const option = selectedRef.current;
     const destination = option ? OPTIONS[option]?.href : null;
-
     closeMenu();
-
-    if (destination) {
-      router.push(destination);
-    }
-    // Placeholder actions close the menu without navigating.
+    if (destination) router.push(destination);
   }, [closeMenu, router]);
 
   const cancelHold = useCallback(() => {
     clearTimeout(timerRef.current);
     pointerRef.current = null;
-
-    if (menuOpenRef.current) {
-      closeMenu();
-    }
+    if (menuOpenRef.current) closeMenu();
   }, [closeMenu]);
 
   useEffect(() => {
     const onKeyDown = (event) => {
       if (event.key === "Escape") closeMenu();
     };
-
     window.addEventListener("keydown", onKeyDown);
-
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       clearTimeout(timerRef.current);
@@ -279,12 +259,10 @@ export default function NavBar() {
           onContextMenu={(event) => event.preventDefault()}
           onClick={(event) => {
             event.preventDefault();
-
             if (suppressClickRef.current) {
               suppressClickRef.current = false;
               return;
             }
-
             router.push("/chat");
           }}
         >
@@ -335,9 +313,8 @@ export default function NavBar() {
                   aria-label={option.label}
                   aria-pressed={selected === key}
                   onPointerEnter={(event) => {
-                    if (event.pointerType === "mouse" && menuOpenRef.current) {
+                    if (event.pointerType === "mouse" && menuOpenRef.current)
                       chooseOption(key);
-                    }
                   }}
                   onClick={(event) => event.preventDefault()}
                 >

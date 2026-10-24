@@ -7,6 +7,8 @@ import styles from "./ticket.module.css";
 import NavBar from "@/components/layout/NavBar";
 import AppBar from "@/components/layout/AppBar";
 import { useAuth } from "@/context/AuthContext";
+import ExportMenu from "@/components/layout/ExportMenu";
+import { buildReportCsv } from "@/lib/csv-builders";
 import {
   subscribeTickets,
   getStatusMeta,
@@ -54,6 +56,11 @@ export default function TicketPage() {
         }
         onAction={() => router.push("/ticket/add")}
       />
+
+      <div className={styles.exportMenu}>
+        <p>Export</p>
+        <ExportMenu page="report" getData={() => buildReportCsv(tickets)} />
+      </div>
 
       <main className={styles.ticketPage}>
         {/* ── Section 2: Ticket List ── */}

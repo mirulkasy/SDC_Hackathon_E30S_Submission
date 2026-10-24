@@ -1,12 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./home.module.css";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeDailyStats, formatRMFromSen } from "@/lib/transactions";
+import { subscribeProducts, LOW_STOCK_THRESHOLD } from "@/lib/inventory";
 import Image from "next/image";
 import NavBar from "@/components/layout/NavBar";
 import Link from "next/link";
+
+// Matches organizations/{orgId}.settings.expiryAlertDays default from onboarding
+const EXPIRY_WARNING_DAYS = 7;
+
+function daysUntil(dateStr) {
+  const due = new Date(`${dateStr}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((due - today) / 86400000);
+}
+
+function expiryLabel(daysLeft) {
+  if (daysLeft < 0) return "Expired";
+  if (daysLeft === 0) return "Due today";
+  return `${daysLeft}d left`;
+}
 
 export default function HomePage() {
   const { profile } = useAuth();
@@ -16,11 +33,37 @@ export default function HomePage() {
     profit: 0,
     loaded: false,
   });
+  const [products, setProducts] = useState([]);
 
   useEffect(() => {
     if (!profile?.orgId) return;
     return subscribeDailyStats(profile.orgId, setStats);
   }, [profile?.orgId]);
+
+  useEffect(() => {
+    if (!profile?.orgId) return;
+    return subscribeProducts(profile.orgId, setProducts);
+  }, [profile?.orgId]);
+
+  const expiryAlerts = useMemo(
+    () =>
+      products
+        .filter((p) => p.category === "Food" && p.dueDate)
+        .map((p) => ({ ...p, daysLeft: daysUntil(p.dueDate) }))
+        .filter((p) => p.daysLeft <= EXPIRY_WARNING_DAYS)
+        .sort((a, b) => a.daysLeft - b.daysLeft)
+        .slice(0, 6),
+    [products],
+  );
+
+  const lowStockAlerts = useMemo(
+    () =>
+      products
+        .filter((p) => p.stock <= LOW_STOCK_THRESHOLD)
+        .sort((a, b) => a.stock - b.stock)
+        .slice(0, 6),
+    [products],
+  );
 
   return (
     <>
@@ -230,6 +273,76 @@ export default function HomePage() {
             />
           </Link>
         </section>
+
+        {(expiryAlerts.length > 0 || lowStockAlerts.length > 0) && (
+          <section className={styles.alertSection}>
+            {expiryAlerts.length > 0 && (
+              <div className={styles.alertGroup}>
+                <h2 className={styles.alertGroupTitle}>
+                  Expiring Soon
+                  <span>{expiryAlerts.length}</span>
+                </h2>
+                <div className={styles.alertCard}>
+                  {expiryAlerts.map((p) => {
+                    const critical = p.daysLeft <= 2;
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/inventory/${p.id}`}
+                        className={styles.alertRow}
+                      >
+                        <div className={styles.alertInfo}>
+                          <h1>{p.name}</h1>
+                          <p>{p.stock} in stock</p>
+                        </div>
+                        <span
+                          className={
+                            critical ? styles.alertCritical : styles.alertWarn
+                          }
+                        >
+                          {expiryLabel(p.daysLeft)}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {lowStockAlerts.length > 0 && (
+              <div className={styles.alertGroup}>
+                <h2 className={styles.alertGroupTitle}>
+                  Low Stock
+                  <span>{lowStockAlerts.length}</span>
+                </h2>
+                <div className={styles.alertCard}>
+                  {lowStockAlerts.map((p) => {
+                    const critical = p.stock / LOW_STOCK_THRESHOLD < 0.4;
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/inventory/${p.id}`}
+                        className={styles.alertRow}
+                      >
+                        <div className={styles.alertInfo}>
+                          <h1>{p.name}</h1>
+                          <p>min {LOW_STOCK_THRESHOLD}</p>
+                        </div>
+                        <span
+                          className={
+                            critical ? styles.alertCritical : styles.alertWarn
+                          }
+                        >
+                          {p.stock === 0 ? "Out of stock" : `${p.stock} left`}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
       </main>
 
       <NavBar></NavBar>

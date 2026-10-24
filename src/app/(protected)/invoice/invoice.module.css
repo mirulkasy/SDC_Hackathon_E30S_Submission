@@ -1,0 +1,393 @@
+.invoicePage {
+    padding: 0 0 110px !important;
+    background-color: #f5f7f6;
+    min-height: 100svh;
+}
+
+/* ── Form mode ── */
+.formSection {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 20px 15px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.formSection h2 {
+    margin: 10px 0 0;
+    font-size: var(--fontsize-18);
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.formCard {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 15px;
+    box-sizing: border-box;
+    background-color: white;
+    border-radius: 12px;
+}
+
+.fieldGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* ── Items ── */
+.itemsCard {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    background-color: white;
+    border-radius: 12px;
+}
+
+.itemRow {
+    display: grid;
+    grid-template-columns: 1fr 48px 68px 68px 24px;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.itemRow:last-of-type {
+    border-bottom: none;
+}
+
+.itemDesc,
+.itemQty,
+.itemPrice {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #e3e8e6;
+    border-radius: 8px;
+    background-color: #f5f7f6;
+    font-family: inherit;
+    font-size: var(--fontsize-13);
+    color: var(--dark);
+}
+
+.itemDesc:focus,
+.itemQty:focus,
+.itemPrice:focus {
+    outline: none;
+    border-color: var(--primary);
+    background-color: white;
+}
+
+.itemTotal {
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.removeItemBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 16px;
+    color: #9ca3af;
+}
+
+.removeItemBtn:hover {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.removeItemBtn:disabled {
+    opacity: 0.3;
+}
+
+.addItemBtn {
+    align-self: flex-start;
+    margin-top: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1.5px dashed var(--primary);
+    color: var(--primary);
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+}
+
+/* ── Totals ── */
+.totalsCard {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 15px;
+    box-sizing: border-box;
+    background-color: white;
+    border-radius: 12px;
+}
+
+.totalRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--fontsize-14);
+    color: var(--dark);
+}
+
+.totalRow span:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #666;
+}
+
+.taxInput {
+    height: 24px;
+    width: 56px;
+    padding: 5px 7px;
+    border: 1px solid #e3e8e6;
+    border-radius: 7px;
+    background-color: #f5f7f6;
+    font-size: var(--fontsize-13);
+}
+
+.grandTotal {
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+    font-size: var(--fontsize-18);
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* ── Preview / submit actions ── */
+.previewBtn {
+    margin-top: 10px;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    background-color: var(--primary);
+    color: white;
+    font-size: var(--fontsize-16);
+    font-weight: 600;
+    text-align: center;
+}
+
+.previewBtn:disabled {
+    opacity: 0.5;
+}
+
+.hint {
+    margin: 0;
+    font-size: var(--fontsize-12);
+    color: #888;
+    text-align: center;
+}
+
+/* ── Preview mode ── */
+.previewSection {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 20px 15px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.previewActions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.previewActionsRight {
+    display: flex;
+    gap: 8px;
+}
+
+.backBtn {
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.recordBtn,
+.printBtn {
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+}
+
+.recordBtn {
+    border: 1.5px solid var(--primary);
+    color: var(--primary);
+    background: white;
+}
+
+.recordBtn:disabled {
+    opacity: 0.5;
+}
+
+.printBtn {
+    background-color: var(--primary);
+    color: white;
+}
+
+.savedNote {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    font-weight: 500;
+    color: #15803d;
+}
+
+/* ── The printable sheet itself ── */
+.invoiceSheet {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 24px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: var(--boxshadow);
+}
+
+.sheetHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--primary);
+}
+
+.sheetHeader h1 {
+    margin: 0 0 4px;
+    font-size: var(--fontsize-18);
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.sheetHeader p {
+    margin: 0;
+    font-size: var(--fontsize-12);
+    color: #666;
+    line-height: 1.5;
+}
+
+.sheetMeta {
+    text-align: right;
+}
+
+.sheetMeta h2 {
+    margin: 0 0 4px;
+    font-size: var(--fontsize-20);
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--dark);
+}
+
+.sheetMeta p {
+    margin: 0;
+    font-size: var(--fontsize-12);
+    color: #666;
+}
+
+.sheetBillTo {
+    padding: 16px 0;
+}
+
+.sheetLabel {
+    margin: 0 0 4px;
+    font-size: var(--fontsize-12);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #9ca3af;
+}
+
+.sheetBillName {
+    margin: 0 0 2px;
+    font-size: var(--fontsize-16);
+    font-weight: 600;
+}
+
+.sheetBillTo p {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    color: #555;
+    line-height: 1.5;
+}
+
+.sheetTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.sheetTable th {
+    text-align: left;
+    padding: 8px 6px;
+    font-size: var(--fontsize-12);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #666;
+    border-bottom: 1.5px solid #e5e7eb;
+}
+
+.sheetTable th:not(:first-child),
+.sheetTable td:not(:first-child) {
+    text-align: right;
+}
+
+.sheetTable td {
+    padding: 8px 6px;
+    font-size: var(--fontsize-13);
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.sheetTotals {
+    margin-top: 12px;
+    margin-left: auto;
+    width: 240px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sheetTotalRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--fontsize-13);
+    color: #555;
+}
+
+.sheetGrandTotal {
+    padding-top: 8px;
+    border-top: 1.5px solid var(--primary);
+    font-size: var(--fontsize-16);
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.sheetNotes {
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.sheetNotes p:last-child {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    color: #555;
+    white-space: pre-wrap;
+    line-height: 1.5;
+}

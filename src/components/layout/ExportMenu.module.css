@@ -1,0 +1,195 @@
+.wrapper {
+    position: relative;
+}
+
+.trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    color: inherit;
+}
+
+.popover {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 10px);
+    right: 0;
+    box-sizing: border-box;
+    width: 260px;
+    padding: 14px;
+    background-color: var(--light);
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(17, 24, 39, 0.18);
+    color: var(--dark);
+    animation: pop 0.14s ease-out;
+}
+
+@keyframes pop {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.headerText h3 {
+    margin: 0;
+    font-size: var(--fontsize-14);
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.headerText p {
+    margin: 3px 0 0;
+    font-size: var(--fontsize-12);
+    color: #888;
+    line-height: 1.4;
+}
+
+.closeBtn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: #9ca3af;
+}
+
+.closeBtn:hover {
+    background-color: #f1f3f7;
+    color: var(--dark);
+}
+
+.optionList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 8px;
+    border-radius: 10px;
+    text-align: left;
+}
+
+.option:hover {
+    background-color: #f1f3f7;
+}
+
+.option:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.optionIcon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background-color: #f5f7f6;
+    color: var(--primary);
+}
+
+.optionText {
+    min-width: 0;
+    flex: 1;
+}
+
+.optionText p:first-child {
+    margin: 0;
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.optionText p:last-child {
+    margin: 1px 0 0;
+    font-size: var(--fontsize-12);
+    color: #888;
+}
+
+.errorText {
+    margin: 8px 2px 0;
+    font-size: var(--fontsize-12);
+    font-weight: 500;
+    color: #dc2626;
+}
+
+/* ── Google Sheets result panel ── */
+.resultPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.formulaBox {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: #f5f7f6;
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--dark);
+    word-break: break-all;
+}
+
+.resultActions {
+    display: flex;
+    gap: 8px;
+}
+
+.primaryBtn,
+.secondaryBtn {
+    flex: 1;
+    text-align: center;
+    padding: 9px 0;
+    border-radius: 999px;
+    font-size: var(--fontsize-13);
+    font-weight: 600;
+}
+
+.primaryBtn {
+    background-color: var(--primary);
+    color: white;
+}
+
+.secondaryBtn {
+    border: 1.5px solid #e3e8e6;
+    color: var(--dark);
+}
+
+.resultHint {
+    margin: 0;
+    font-size: var(--fontsize-12);
+    color: #888;
+    line-height: 1.5;
+}
+
+.backBtn {
+    align-self: flex-start;
+    font-size: var(--fontsize-12);
+    font-weight: 600;
+    color: var(--primary);
+}

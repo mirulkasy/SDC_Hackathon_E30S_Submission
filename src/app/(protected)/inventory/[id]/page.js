@@ -516,7 +516,7 @@ export default function SubInventoryPage() {
         {/* ── Section 3: Price Suggestion (from /api/ecommerce-pricing) ── */}
         <section className={styles.suggestionSection}>
           <h2>
-            Price Suggestion <span className={styles.aiBadge}>AI</span>
+            Price Suggestion 
           </h2>
 
           {costNum <= 0 ? (

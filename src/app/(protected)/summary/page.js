@@ -6,6 +6,9 @@ import NavBar from "@/components/layout/NavBar";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeSummary, blankSummary } from "@/lib/summary";
 import { subscribeProducts, LOW_STOCK_THRESHOLD } from "@/lib/inventory";
+import AppBar from "@/components/layout/AppBar";
+import ExportMenu from "@/components/layout/ExportMenu";
+import { buildSummaryCsv } from "@/lib/csv-builders";
 
 /* ---------- constants (UI only, no backend) ---------- */
 
@@ -444,8 +447,14 @@ export default function SummaryPage() {
 
   const barWidth = (n) => `${(n / (stock.total || 1)) * 100}%`;
 
+  const getExportData = () => buildSummaryCsv(current, stock);
+
   return (
     <>
+      <AppBar
+        title="Summary"
+        actionMenu={<ExportMenu page="summary" getData={getExportData}  />}
+      />
       <main className={styles.summaryPage}>
         <section className={styles.topWrapper}>
           <div className={styles.topHeader}>

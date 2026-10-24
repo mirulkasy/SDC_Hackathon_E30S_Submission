@@ -1,5 +1,5 @@
 .homePage {
-    padding: 0 !important;
+    padding: 0 0 150px !important;
     background-color: #f5f7f6;
 }
 
@@ -134,4 +134,97 @@
     right: 0;
     top: 50%;
     transform: translateY(-20%) scale(1.5);
+}
+
+/* ── Alerts (low stock + expiring soon) ── */
+.alertSection {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 20px 15px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.alertGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.alertGroupTitle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.alertGroupTitle span {
+    font-size: var(--fontsize-12);
+    font-weight: 500;
+    color: #888;
+}
+
+.alertCard {
+    background-color: white;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.alertRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    text-decoration: none;
+    color: inherit;
+}
+
+.alertRow:last-child {
+    border-bottom: none;
+}
+
+.alertInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.alertInfo h1 {
+    font-size: var(--fontsize-14);
+    font-weight: 600;
+    color: var(--dark);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.alertInfo p {
+    font-size: var(--fontsize-12);
+    color: #8a8fa3;
+}
+
+.alertCritical,
+.alertWarn {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: var(--fontsize-12);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.alertCritical {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.alertWarn {
+    background-color: #fef3c7;
+    color: #b45309;
 }

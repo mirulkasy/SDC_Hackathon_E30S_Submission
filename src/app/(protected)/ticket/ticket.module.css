@@ -187,3 +187,19 @@
   line-height: 1.5;
   color: #888;
 }
+
+.exportMenu {
+  background-color: var(--primary);
+  padding: 0px 15px 10px;
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 5px;
+}
+
+.exportMenu {
+  font-size: var(--fontsize-13);
+  color: white;
+}

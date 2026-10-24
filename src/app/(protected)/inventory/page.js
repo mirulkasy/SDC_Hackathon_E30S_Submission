@@ -9,6 +9,8 @@ import Link from "next/link";
 import AppBar from "@/components/layout/AppBar";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeProducts } from "@/lib/inventory";
+import ExportMenu from "@/components/layout/ExportMenu";
+import { buildInventoryCsv } from "@/lib/csv-builders";
 
 // Matches the default settings.lowStockThreshold used on org creation
 const LOW_STOCK_THRESHOLD = 5;
@@ -93,6 +95,7 @@ export default function InventoryPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
+              <ExportMenu page="inventory" getData={() => buildInventoryCsv(products)} />
             </div>
             <Link
               href="/barcode"

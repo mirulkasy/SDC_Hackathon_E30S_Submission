@@ -130,15 +130,6 @@
   gap: 10px;
 }
 
-.aiBadge {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background-color: black;
-  color: white;
-  font-size: var(--fontsize-12);
-  font-weight: 500;
-}
-
 .suggestionGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
