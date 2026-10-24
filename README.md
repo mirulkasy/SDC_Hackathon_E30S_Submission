@@ -251,7 +251,7 @@ BISCOACH does not include an automated test suite. As stated in our Technical De
 
 ---
 
-## How We Use Replit *(Required)*
+## How We Use Replit
 
 - **Hosting:** The Next.js app (UI and server routes) is deployed and published through Replit Deployments at [biscoach.replit.app](https://biscoach.replit.app/).
 - **Scheduled jobs:** Replit Scheduled Deployment runs the stock and expiry checks.
@@ -261,7 +261,7 @@ BISCOACH does not include an automated test suite. As stated in our Technical De
 
 📄 Proof of use: [`submission/REPLIT PROOF OF USE.pdf`](submission/REPLIT%20PROOF%20OF%20USE.pdf)
 
-## How We Use RunPod *(Required)*
+## How We Use RunPod
 
 RunPod was not used in this project. BISCOACH's AI workloads (document reading, conversational assistance and content generation) run on the Google Gemini API, called server-side from our Next.js application, which met our requirements without dedicated GPU hosting. We would consider RunPod for future features that need custom or fine-tuned models.
 
