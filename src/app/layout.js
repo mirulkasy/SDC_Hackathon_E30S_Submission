@@ -3,6 +3,7 @@ import styles from "@/styles/mobile.module.css";
 import localFont from "next/font/local";
 import { AuthProvider } from "@/context/AuthContext";
 import PageTransition from "@/components/PageTransition";
+import { Suspense } from "react";
 
 const poppins = localFont({
   src: [
@@ -146,10 +147,12 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`${poppins.variable} ${inter.variable}`}>
       <body>
         <section className={styles.mobileView}>
-        <AuthProvider>
-          {children}
-          <PageTransition />
-        </AuthProvider>
+          <AuthProvider>
+            {children}
+            <Suspense fallback={null}>
+              <PageTransition />
+            </Suspense>
+          </AuthProvider>
         </section>
       </body>
     </html>
